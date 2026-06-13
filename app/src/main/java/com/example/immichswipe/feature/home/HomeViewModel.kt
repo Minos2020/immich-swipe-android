@@ -3,62 +3,84 @@ package com.example.immichswipe.feature.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.immichswipe.data.repository.UserRepository
+import com.example.immichswipe.data.repository.AlbumRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import android.content.Context
 import com.example.immichswipe.core.SessionManager
-import com.example.immichswipe.data.datastore.SessionDataStore
 import com.example.immichswipe.data.repository.SessionRepository
-import kotlinx.coroutines.flow.first
+import com.example.immichswipe.domain.model.Album
 
-// On définit HomeViewModel à partir de la classe existante ViewModel
+/**
+ * ViewModel de l'écran d'accueil.
+ * Il orchestre la récupération des infos utilisateur et des albums.
+ */
 class HomeViewModel(
-    private val sessionRepository: SessionRepository
+    private val sessionRepository: SessionRepository,
+    private val albumRepository: AlbumRepository
 ) : ViewModel() {
-    private val repository = UserRepository(
-        SessionManager.api
-            ?: throw IllegalStateException("Session not initialized")
-    )
+    
+    private val userRepository by lazy { 
+        UserRepository(
+            SessionManager.api ?: throw IllegalStateException("Session not initialized")
+        )
+    }
+    
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    fun testSaveSession() {
-        viewModelScope.launch {
-            sessionRepository.saveSession(
-                baseUrl = "https://immich.test.fr",
-                token = "fake-token"
-            )
-        }
-    }
-
-    fun testReadSession() {
-        viewModelScope.launch {
-            val token = sessionRepository.getToken().first()
-            val baseUrl = sessionRepository.getBaseUrl().first()
-
-            android.util.Log.d("SESSION", "token = $token")
-            android.util.Log.d("SESSION", "baseUrl = $baseUrl")
-        }
-    }
-
+    /**
+     * Charge toutes les données nécessaires à l'écran d'accueil.
+     * (l'utilisateur et la liste des albums)
+     */
     fun loadUser() {
-        // Permet de lancer la requête dans une coroutine pour ne pas freeze l'UI pendant son exécution
         viewModelScope.launch {
-            _uiState.value = HomeUiState(isLoading = true)
-
+            _uiState.value = _uiState.value.copy(isLoading = true)
             try {
-                val user = repository.getCurrentUser()
-
-                _uiState.value = HomeUiState(user = user, isLoading = false)
-
+                // On récupère les deux informations
+                val user = userRepository.getCurrentUser()
+                val albums = albumRepository.getAlbums()
+                
+                _uiState.value = _uiState.value.copy(
+                    user = user,
+                    albums = albums,
+                    isLoading = false,
+                    error = null
+                )
             } catch (e: Exception) {
-
-                _uiState.value = HomeUiState(error = e.message, isLoading = false)
+                _uiState.value = _uiState.value.copy(
+                    error = e.message ?: "Erreur lors du chargement des données",
+                    isLoading = false
+                )
             }
         }
     }
 
+    /**
+     * Change l'onglet actuel de la barre de navigation.
+     */
+    fun onTabSelected(tab: HomeTab) {
+        _uiState.value = _uiState.value.copy(currentTab = tab)
+    }
 
+    /**
+     * Sélectionne un album pour commencer une session de tri.
+     * Bascule automatiquement sur l'onglet SWIPE.
+     */
+    fun onAlbumSelected(album: Album) {
+        _uiState.value = _uiState.value.copy(
+            selectedAlbum = album,
+            currentTab = HomeTab.SWIPE
+        )
+    }
+
+    /**
+     * Déconnecte l'utilisateur en vidant le stockage local.
+     */
+    fun logout() {
+        viewModelScope.launch {
+            sessionRepository.clearSession()
+        }
+    }
 }

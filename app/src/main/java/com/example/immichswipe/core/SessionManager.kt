@@ -25,4 +25,6 @@ object SessionManager {
     }
 
     fun getBaseUrl(): String? = config?.baseUrl
+
+    fun getApiKey(): String? = config?.apiKey
 }

@@ -1,5 +1,6 @@
 package com.example.immichswipe
 
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -9,19 +10,22 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.Surface
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.example.immichswipe.feature.home.HomeScreen
+import com.example.immichswipe.core.SessionManager
 import com.example.immichswipe.ui.theme.ImmichSwipeTheme
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.immichswipe.data.repository.SessionRepository
+import com.example.immichswipe.data.repository.AuthRepository
+import com.example.immichswipe.data.repository.AlbumRepository
+import com.example.immichswipe.data.repository.AssetRepository
 import com.example.immichswipe.feature.auth.AuthScreen
 import com.example.immichswipe.feature.auth.AuthViewModel
 import com.example.immichswipe.feature.auth.AuthViewModelFactory
@@ -34,8 +38,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        // On verrouille l'application en mode Portrait par défaut.
+        // On ne le fait qu'une seule fois au démarrage pour permettre 
+        // les changements dynamiques ensuite.
+        if (savedInstanceState == null) {
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
 
         val sessionRepository = SessionRepository(applicationContext)
+        val authRepository = AuthRepository()
 
         setContent {
             ImmichSwipeTheme {
@@ -46,18 +58,19 @@ class MainActivity : ComponentActivity() {
 
                 val state by appViewModel.uiState.collectAsState()
 
-                LaunchedEffect(Unit) {
-                    appViewModel.checkSession()
-                }
-
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    // On utilise AnimatedContent directement sans Scaffold parent 
+                    // car chaque écran (Home, Auth) possède son propre Scaffold
                     AnimatedContent(
                         targetState = state,
                         transitionSpec = {
                             fadeIn(animationSpec = tween(500)) togetherWith fadeOut(animationSpec = tween(500))
                         },
                         label = "ScreenTransition",
-                        modifier = Modifier.padding(innerPadding)
+                        modifier = Modifier.fillMaxSize()
                     ) { targetState ->
                         when {
                             targetState.isLoading -> {
@@ -65,19 +78,23 @@ class MainActivity : ComponentActivity() {
                             }
 
                             targetState.isLoggedIn -> {
+                                val api = SessionManager.api ?: throw IllegalStateException("API not ready")
+                                val albumRepository = AlbumRepository(api)
+                                val assetRepository = AssetRepository(api)
+                                
                                 HomeScreen(
                                     viewModel = viewModel(
-                                        factory = HomeViewModelFactory(sessionRepository)
-                                    )
+                                        factory = HomeViewModelFactory(sessionRepository, albumRepository)
+                                    ),
+                                    assetRepository = assetRepository
                                 )
                             }
 
                             else -> {
                                 AuthScreen(
                                     viewModel = viewModel(
-                                        factory = AuthViewModelFactory(sessionRepository)
-                                    ),
-                                    onLoginSuccess = { appViewModel.checkSession() }
+                                        factory = AuthViewModelFactory(sessionRepository, authRepository)
+                                    )
                                 )
                             }
                         }
