@@ -4,6 +4,10 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.pm.ActivityInfo
+import android.view.GestureDetector
+import android.view.LayoutInflater
+import android.view.MotionEvent
+import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -11,6 +15,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -23,7 +28,6 @@ import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
@@ -55,12 +59,14 @@ import com.example.immichswipe.core.SessionManager
 import com.example.immichswipe.data.repository.AssetRepository
 import com.example.immichswipe.domain.model.Album
 import com.example.immichswipe.domain.model.Asset
+import com.example.immichswipe.R
 import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.roundToInt
 import androidx.compose.foundation.BorderStroke
-
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.vector.ImageVector
 
 private val MaterialGreen = Color(0xFF4CAF50)
 private val MaterialRed = Color(0xFFE57373)
@@ -86,100 +92,130 @@ fun SwipeScreen(
     )
     val uiState by viewModel.uiState.collectAsState()
 
-    Column(
-        modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // 1. Timeline (Barre du haut avec vignettes)
-        AssetTimeline(
-            assets = uiState.assets,
-            decisions = uiState.decisions,
-            currentIndex = uiState.currentIndex,
-            onAssetClick = { viewModel.onMoveToAsset(it) }
-        )
+    // États pour le plein écran gérés au niveau de l'écran pour une transition fluide
+    var fullscreenAsset by rememberSaveable(stateSaver = Asset.Saver) { mutableStateOf<Asset?>(null) }
+    var fullscreenPlayer by remember { mutableStateOf<Player?>(null) }
 
-        // 2. Zone centrale : La pile de cartes
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            contentAlignment = Alignment.Center
+    if (fullscreenAsset != null) {
+        BackHandler {
+            fullscreenAsset = null
+            fullscreenPlayer = null
+        }
+    }
+
+    Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (uiState.isLoading) {
-                CircularProgressIndicator()
-            } else if (uiState.error != null) {
-                Text(text = uiState.error!!, color = MaterialTheme.colorScheme.error)
-            } else if (uiState.currentIndex < uiState.assets.size) {
-                
-                // On affiche l'asset suivant en arrière-plan pour l'effet de pile
-                val nextAsset = uiState.assets.getOrNull(uiState.currentIndex + 1)
-                if (nextAsset != null) {
-                    key(nextAsset.id) {
-                        SwipeCard(
-                            asset = nextAsset,
-                            onSwipe = {},
-                            isNext = true
+            // 1. Timeline (Barre du haut avec vignettes)
+            AssetTimeline(
+                assets = uiState.assets,
+                decisions = uiState.decisions,
+                currentIndex = uiState.currentIndex,
+                onAssetClick = { viewModel.onMoveToAsset(it) }
+            )
+
+            // 2. Zone centrale : La pile de cartes
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (uiState.isLoading) {
+                    CircularProgressIndicator()
+                } else if (uiState.error != null) {
+                    Text(text = uiState.error!!, color = MaterialTheme.colorScheme.error)
+                } else if (uiState.currentIndex < uiState.assets.size) {
+                    val currentIndex = uiState.currentIndex
+                    val assets = uiState.assets
+                    
+                    val visibleIndices = (currentIndex until (currentIndex + 2).coerceAtMost(assets.size)).toList().reversed()
+                    
+                    visibleIndices.forEach { index ->
+                        val asset = assets[index]
+                        val isNextCard = index > currentIndex
+                        key(asset.id) {
+                            SwipeCard(
+                                asset = asset,
+                                onSwipe = { viewModel.onSwipe(it) },
+                                isNext = isNextCard,
+                                isFullscreenVisible = fullscreenAsset?.id == asset.id,
+                                onFullscreenRequest = { a, p ->
+                                    fullscreenAsset = a
+                                    fullscreenPlayer = p
+                                }
+                            )
+                        }
+                    }
+                } else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Default.Celebration,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.primary
                         )
+                        Spacer(Modifier.height(16.dp))
+                        Text(text = "Félicitations ! Album trié.", fontWeight = FontWeight.Bold)
                     }
                 }
+            }
 
-                // On affiche l'asset courant
-                val currentAsset = uiState.assets[uiState.currentIndex]
-                key(currentAsset.id) {
-                    SwipeCard(
-                        asset = currentAsset,
-                        onSwipe = { viewModel.onSwipe(it) },
-                        isNext = false
-                    )
+            // 3. Barre d'actions en bas
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp, top = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                FloatingActionButton(
+                    onClick = { viewModel.onSwipe(SwipeDecision.DELETE) },
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    shape = CircleShape
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = "Supprimer")
                 }
-            } else {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Default.Celebration,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    Text(text = "Félicitations ! Album trié.", fontWeight = FontWeight.Bold)
+
+                IconButton(
+                    onClick = { viewModel.undo() },
+                    enabled = uiState.currentIndex > 0
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Annuler")
+                }
+
+                IconButton(onClick = { viewModel.onSwipe(SwipeDecision.SKIP) }) {
+                    Icon(Icons.AutoMirrored.Filled.Forward, contentDescription = "Passer")
+                }
+
+                FloatingActionButton(
+                    onClick = { viewModel.onSwipe(SwipeDecision.KEEP) },
+                    containerColor = MaterialGreen,
+                    contentColor = Color.White,
+                    shape = CircleShape
+                ) {
+                    Icon(Icons.Default.Check, contentDescription = "Garder")
                 }
             }
         }
 
-        // 3. Barre d'actions en bas
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp, top = 8.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
+        // Overlay Plein Écran avec animation fluide
+        AnimatedVisibility(
+            visible = fullscreenAsset != null,
+            enter = fadeIn(tween(400)) + scaleIn(initialScale = 0.85f, animationSpec = tween(400)),
+            exit = fadeOut(tween(300)) + scaleOut(targetScale = 0.85f, animationSpec = tween(300))
         ) {
-            FloatingActionButton(
-                onClick = { viewModel.onSwipe(SwipeDecision.DELETE) },
-                containerColor = MaterialTheme.colorScheme.errorContainer,
-                contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                shape = CircleShape
-            ) {
-                Icon(Icons.Default.Delete, contentDescription = "Supprimer")
-            }
-
-            IconButton(
-                onClick = { viewModel.undo() },
-                enabled = uiState.currentIndex > 0
-            ) {
-                Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Annuler")
-            }
-
-            IconButton(onClick = { viewModel.onSwipe(SwipeDecision.SKIP) }) {
-                Icon(Icons.AutoMirrored.Filled.Forward, contentDescription = "Passer")
-            }
-
-            FloatingActionButton(
-                onClick = { viewModel.onSwipe(SwipeDecision.KEEP) },
-                containerColor = MaterialGreen,
-                contentColor = Color.White,
-                shape = CircleShape
-            ) {
-                Icon(Icons.Default.Check, contentDescription = "Garder")
+            fullscreenAsset?.let { asset ->
+                FullscreenViewer(
+                    asset = asset,
+                    player = fullscreenPlayer,
+                    onClose = {
+                        fullscreenAsset = null
+                        fullscreenPlayer = null
+                    }
+                )
             }
         }
     }
@@ -282,11 +318,14 @@ fun AssetTimeline(
     }
 }
 
+@OptIn(UnstableApi::class)
 @Composable
 fun SwipeCard(
     asset: Asset,
     onSwipe: (SwipeDecision) -> Unit,
-    isNext: Boolean
+    isNext: Boolean,
+    isFullscreenVisible: Boolean,
+    onFullscreenRequest: (Asset, Player?) -> Unit
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
@@ -296,16 +335,39 @@ fun SwipeCard(
     val scope = rememberCoroutineScope()
     val offsetX = remember { Animatable(0f) }
     val offsetY = remember { Animatable(0f) }
-    var isFullscreenOpen by rememberSaveable { mutableStateOf(false) }
 
     // Hauteur du panneau de métadonnées
     val metadataHeight = 300.dp
     val metadataHeightPx = with(density) { metadataHeight.toPx() }
 
-    // Animation de grossissement de la carte suivante (plus lente et fluide)
+    // On crée un Player unique pour cette carte si c'est une vidéo
+    val exoPlayer = remember(asset.id, isNext) {
+        if (asset.type == "VIDEO" && !isNext) {
+            ExoPlayer.Builder(context).build().apply {
+                repeatMode = Player.REPEAT_MODE_ONE
+                val videoUrl = "$baseUrl/api/assets/${asset.id}/video/playback"
+                val dataSourceFactory = DefaultHttpDataSource.Factory()
+                    .setDefaultRequestProperties(mapOf("x-api-key" to apiKey))
+                val mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory)
+                    .createMediaSource(MediaItem.fromUri(videoUrl))
+                setMediaSource(mediaSource)
+                prepare()
+                playWhenReady = true
+            }
+        } else null
+    }
+
+    DisposableEffect(exoPlayer) {
+        onDispose {
+            exoPlayer?.stop()
+            exoPlayer?.release()
+        }
+    }
+
+    // Animation de grossissement de la carte suivante (vitesse moyenne 500ms)
     val animatedScale by animateFloatAsState(
         targetValue = if (isNext) 0.85f else 1f,
-        animationSpec = tween(durationMillis = 600, easing = LinearOutSlowInEasing),
+        animationSpec = tween(durationMillis = 400, easing = LinearOutSlowInEasing),
         label = "ScaleAnimation"
     )
 
@@ -319,7 +381,6 @@ fun SwipeCard(
                     scaleY = animatedScale
                     if (!isNext) {
                         translationX = offsetX.value
-                        // La photo reste fixe verticalement (offsetY utilisé pour les métadonnées)
                         rotationZ = offsetX.value / 40f
                     }
                 }
@@ -332,24 +393,27 @@ fun SwipeCard(
                                 val currentY = offsetY.value
                                 
                                 if (currentX > 400) {
-                                    // Swipe rapide vers la droite (KEEP)
-                                    offsetX.animateTo(1500f, animationSpec = tween(250))
+                                    offsetX.animateTo(1500f, tween(250))
                                     onSwipe(SwipeDecision.KEEP)
                                 } else if (currentX < -400) {
-                                    // Swipe rapide vers la gauche (DELETE)
-                                    offsetX.animateTo(-1500f, animationSpec = tween(250))
+                                    offsetX.animateTo(-1500f, tween(250))
                                     onSwipe(SwipeDecision.DELETE)
                                 } else {
-                                    // Si on n'a pas swipé assez loin horizontalement, on revient TOUJOURS au centre X
                                     launch { offsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioLowBouncy)) }
                                     
-                                    // Gestion du "cran" pour les métadonnées (Y)
-                                    if (currentY < -metadataHeightPx / 4) {
-                                        // On aimante le panneau en position ouverte
-                                        offsetY.animateTo(-metadataHeightPx, spring(dampingRatio = Spring.DampingRatioLowBouncy))
+                                    val wasOpen = offsetY.targetValue < -metadataHeightPx / 2
+                                    if (wasOpen) {
+                                        if (currentY < -metadataHeightPx * 0.9f) {
+                                            offsetY.animateTo(-metadataHeightPx, spring(dampingRatio = Spring.DampingRatioLowBouncy))
+                                        } else {
+                                            offsetY.animateTo(0f, spring(dampingRatio = Spring.DampingRatioLowBouncy))
+                                        }
                                     } else {
-                                        // On referme le panneau
-                                        offsetY.animateTo(0f, spring(dampingRatio = Spring.DampingRatioLowBouncy))
+                                        if (currentY < -metadataHeightPx * 0.1f) {
+                                            offsetY.animateTo(-metadataHeightPx, spring(dampingRatio = Spring.DampingRatioLowBouncy))
+                                        } else {
+                                            offsetY.animateTo(0f, spring(dampingRatio = Spring.DampingRatioLowBouncy))
+                                        }
                                     }
                                 }
                             }
@@ -358,10 +422,7 @@ fun SwipeCard(
                             change.consume()
                             scope.launch { 
                                 offsetX.snapTo(offsetX.value + dragAmount.x)
-                                // On permet de monter (valeurs négatives) mais pas de descendre en dessous de 0
-                                // On bride aussi la montée à la hauteur exacte du panneau pour qu'il reste ancré
-                                val newY = (offsetY.value + dragAmount.y).coerceIn(-metadataHeightPx, 0f)
-                                offsetY.snapTo(newY)
+                                offsetY.snapTo((offsetY.value + dragAmount.y).coerceIn(-metadataHeightPx, 0f))
                             }
                         }
                     )
@@ -370,8 +431,25 @@ fun SwipeCard(
             shape = RoundedCornerShape(16.dp)
         ) {
             Box(modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(16.dp))) {
-                if (asset.type == "VIDEO" && !isNext) {
-                    VideoPlayer(assetId = asset.id, baseUrl = baseUrl, apiKey = apiKey)
+                if (asset.type == "VIDEO" && !isNext && exoPlayer != null) {
+                    if (!isFullscreenVisible) {
+                        SharedVideoPlayer(
+                            player = exoPlayer,
+                            isFullscreen = false,
+                            onDoubleTap = { onFullscreenRequest(asset, exoPlayer) }
+                        )
+                    } else {
+                        // Image de remplacement pendant que le player est utilisé en plein écran
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data("$baseUrl/api/assets/${asset.id}/thumbnail?format=JPEG&size=preview")
+                                .addHeader("x-api-key", apiKey)
+                                .build(),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 } else {
                     AsyncImage(
                         model = ImageRequest.Builder(context)
@@ -381,14 +459,22 @@ fun SwipeCard(
                             .build(),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .then(
+                                if (!isNext) {
+                                    Modifier.pointerInput(Unit) {
+                                        detectTapGestures(onDoubleTap = { onFullscreenRequest(asset, exoPlayer) })
+                                    }
+                                } else Modifier
+                            )
                     )
                 }
 
                 // Bouton Plein Écran
                 if (!isNext) {
                     IconButton(
-                        onClick = { isFullscreenOpen = true },
+                        onClick = { onFullscreenRequest(asset, exoPlayer) },
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(8.dp)
@@ -404,11 +490,7 @@ fun SwipeCard(
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
                         .height(150.dp)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.5f))
-                            )
-                        )
+                        .background(Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.5f))))
                 )
 
                 // Panneau Métadonnées Interactif (Intégré dans la carte)
@@ -418,24 +500,14 @@ fun SwipeCard(
                             .align(Alignment.BottomCenter)
                             .fillMaxWidth()
                             .height(metadataHeight)
-                            .graphicsLayer {
-                                // Le panneau émerge du bas de la carte
-                                // translationY = hauteur du panneau (caché) + mouvement vertical
-                                translationY = metadataHeight.toPx() + offsetY.value
-                            }
+                            .graphicsLayer { translationY = metadataHeight.toPx() + offsetY.value }
                     ) {
-                        MetadataPanel(asset = asset, onClose = { 
-                            scope.launch { offsetY.animateTo(0f) }
-                        })
+                        MetadataPanel(asset = asset, onClose = { scope.launch { offsetY.animateTo(0f) } })
                     }
                 }
 
-                // Indicateurs Visuels Swipe
-                if (offsetX.value > 150) {
-                    IndicatorBadge(text = "KEEP", color = MaterialGreen, align = Alignment.TopStart)
-                } else if (offsetX.value < -150) {
-                    IndicatorBadge(text = "DELETE", color = MaterialRed, align = Alignment.TopEnd)
-                }
+                if (offsetX.value > 150) IndicatorBadge("KEEP", MaterialGreen, Alignment.TopStart)
+                else if (offsetX.value < -150) IndicatorBadge("DELETE", MaterialRed, Alignment.TopEnd)
             }
         }
     }
@@ -443,18 +515,64 @@ fun SwipeCard(
     if (isFullscreenOpen) {
         FullscreenViewer(
             asset = asset,
-            baseUrl = baseUrl,
-            apiKey = apiKey,
+            player = exoPlayer,
             onClose = { isFullscreenOpen = false }
         )
     }
 }
 
+@OptIn(UnstableApi::class)
+@Composable
+fun SharedVideoPlayer(
+    player: Player,
+    isFullscreen: Boolean,
+    onDoubleTap: (() -> Unit)? = null
+) {
+    AndroidView(
+        factory = { context ->
+            val view = LayoutInflater.from(context).inflate(R.layout.view_player_texture, null) as PlayerView
+            
+            // Détection du double-tap sur la vue Android native pour contourner la consommation d'événements interne
+            val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
+                override fun onDoubleTap(e: MotionEvent): Boolean {
+                    onDoubleTap?.invoke()
+                    return true
+                }
+            })
+            
+            view.setOnTouchListener { v, event ->
+                gestureDetector.onTouchEvent(event)
+                // On laisse le PlayerView continuer à traiter l'événement pour les contrôles
+                false
+            }
+            
+            view
+        },
+        update = { view ->
+            if (view.player != player) view.player = player
+            view.useController = isFullscreen
+            
+            view.resizeMode = if (isFullscreen) {
+                androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+            } else {
+                androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+            }
+            
+            if (player.playbackState == Player.STATE_READY && !player.isPlaying) {
+                player.play()
+            }
+        },
+        onRelease = { view ->
+            view.player = null
+        },
+        modifier = Modifier.fillMaxSize()
+    )
+}
+
 @Composable
 fun FullscreenViewer(
     asset: Asset,
-    baseUrl: String?,
-    apiKey: String,
+    player: Player?,
     onClose: () -> Unit
 ) {
     val context = LocalContext.current
@@ -462,38 +580,50 @@ fun FullscreenViewer(
     val scope = rememberCoroutineScope()
     val swipeY = remember { Animatable(0f) }
     
-    // On déverrouille l'orientation quand on entre en plein écran
+    // Animation d'entrée et de sortie
+    val animProgress = remember { Animatable(0f) }
+    
+    LaunchedEffect(Unit) {
+        animProgress.animateTo(1f, tween(300, easing = LinearOutSlowInEasing))
+    }
+
+    val safeOnClose = {
+        scope.launch {
+            animProgress.animateTo(0f, tween(250, easing = FastOutLinearInEasing))
+            onClose()
+        }
+    }
+    
     DisposableEffect(Unit) {
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR
-        onDispose {
-            // On revient en portrait quand on ferme le plein écran
-            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-        }
+        onDispose { activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT }
     }
 
     Dialog(
-        onDismissRequest = onClose,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            decorFitsSystemWindows = false // Pour vraiment utiliser tout l'écran
-        )
+        onDismissRequest = { safeOnClose() },
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = (1f - (swipeY.value / 1000f)).coerceIn(0f, 1f)))
+                .graphicsLayer {
+                    val scale = 0.95f + (0.05f * animProgress.value)
+                    scaleX = scale
+                    scaleY = scale
+                    alpha = animProgress.value
+                }
+                .background(Color.Black.copy(alpha = ((1f - (swipeY.value / 1000f)).coerceIn(0f, 1f) * animProgress.value)))
+                .pointerInput(Unit) {
+                    detectTapGestures(onDoubleTap = { safeOnClose() })
+                }
                 .pointerInput(Unit) {
                     detectDragGestures(
                         onDragEnd = {
-                            if (swipeY.value > 300) {
-                                onClose()
-                            } else {
-                                scope.launch { swipeY.animateTo(0f) }
-                            }
+                            if (swipeY.value > 300) safeOnClose()
+                            else scope.launch { swipeY.animateTo(0f) }
                         },
                         onDrag = { change, dragAmount ->
                             change.consume()
-                            // On ne permet que le swipe vers le bas (swipeY > 0)
                             scope.launch { swipeY.snapTo((swipeY.value + dragAmount.y).coerceAtLeast(0f)) }
                         }
                     )
@@ -501,13 +631,18 @@ fun FullscreenViewer(
                 .offset { IntOffset(0, swipeY.value.roundToInt()) },
             contentAlignment = Alignment.Center
         ) {
-            if (asset.type == "VIDEO") {
-                VideoPlayer(assetId = asset.id, baseUrl = baseUrl, apiKey = apiKey)
+            if (asset.type == "VIDEO" && player != null) {
+                SharedVideoPlayer(
+                    player = player,
+                    isFullscreen = true,
+                    onDoubleTap = { safeOnClose() }
+                )
             } else {
+                val baseUrlClean = SessionManager.getBaseUrl()?.removeSuffix("/")
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
-                        .data("$baseUrl/api/assets/${asset.id}/thumbnail?format=JPEG&size=preview")
-                        .addHeader("x-api-key", apiKey)
+                        .data("$baseUrlClean/api/assets/${asset.id}/thumbnail?format=JPEG&size=preview")
+                        .addHeader("x-api-key", SessionManager.getApiKey() ?: "")
                         .build(),
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
@@ -516,10 +651,10 @@ fun FullscreenViewer(
             }
 
             IconButton(
-                onClick = onClose,
+                onClick = { safeOnClose() },
                 modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(16.dp)
+                    .align(Alignment.TopEnd)
+                    .padding(vertical = 50.dp, horizontal = 20.dp)
                     .background(Color.Black.copy(alpha = 0.5f), CircleShape)
             ) {
                 Icon(Icons.Default.Close, null, tint = Color.White)
@@ -530,26 +665,15 @@ fun FullscreenViewer(
 
 @Composable
 fun IndicatorBadge(text: String, color: Color, align: Alignment) {
-    Box(
-        modifier = Modifier
-            .padding(40.dp)
-            .fillMaxSize(),
-        contentAlignment = align
-    ) {
+    Box(modifier = Modifier.padding(40.dp).fillMaxSize(), contentAlignment = align) {
         Surface(
-            color = Color.Transparent,
-            contentColor = color,
-            shape = RoundedCornerShape(8.dp),
+            color = Color.Transparent, contentColor = color, shape = RoundedCornerShape(8.dp),
             border = BorderStroke(2.dp, color.copy(alpha = 0.6f))
         ) {
             Text(
-                text = text,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Black,
-                modifier = Modifier
-                    .padding(horizontal = 12.dp, vertical = 4.dp)
-                    .graphicsLayer { rotationZ = if (align == Alignment.TopStart) -15f else 15f }
-                    .alpha(0.8f)
+                text = text, fontSize = 32.sp, fontWeight = FontWeight.Black,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                    .graphicsLayer { rotationZ = if (align == Alignment.TopStart) -15f else 15f }.alpha(0.8f)
             )
         }
     }
@@ -559,46 +683,21 @@ fun IndicatorBadge(text: String, color: Color, align: Alignment) {
 fun MetadataPanel(asset: Asset, onClose: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxSize(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.60f)),
         shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
     ) {
         Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
-            // Petite barre de tirage (Handle) pour le look
-            Box(
-                modifier = Modifier
-                    .size(40.dp, 4.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.outlineVariant)
-                    .align(Alignment.CenterHorizontally)
-            )
-            
+            Box(modifier = Modifier.size(40.dp, 4.dp).clip(CircleShape).background(MaterialTheme.colorScheme.outlineVariant).align(Alignment.CenterHorizontally))
             Spacer(Modifier.height(16.dp))
-
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "Détails de l'image",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f)
-                )
-                IconButton(onClick = onClose) { 
-                    Icon(Icons.Default.Close, null, modifier = Modifier.size(20.dp)) 
-                }
+                Text(text = "Détails de l'image", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                IconButton(onClick = onClose) { Icon(Icons.Default.Close, null, modifier = Modifier.size(20.dp)) }
             }
-            
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), thickness = 0.5.dp)
-
             MetadataRow(Icons.Default.Description, "Fichier", asset.originalFileName ?: "Inconnu")
             MetadataRow(Icons.Default.CalendarToday, "Date", asset.fileCreatedAt.substringBefore("T"))
-            
-            // Format plus précis avec l'extension réelle
-            val formatLabel = if (asset.fileExtension != null) {
-                "${asset.type} (.${asset.fileExtension.lowercase()})"
-            } else {
-                asset.type
-            }
+            val formatLabel = if (asset.fileExtension != null) "${asset.type} (.${asset.fileExtension.lowercase()})" else asset.type
             MetadataRow(Icons.Default.Info, "Format", formatLabel)
-            
             asset.exifInfo?.let { exif ->
                 val sizeMb = exif.fileSizeInBytes?.let { String.format(Locale.getDefault(), "%.2f Mo", it / 1024.0 / 1024.0) } ?: "N/A"
                 MetadataRow(Icons.Default.SdStorage, "Taille", sizeMb)
@@ -612,89 +711,11 @@ fun MetadataPanel(asset: Asset, onClose: () -> Unit) {
 }
 
 @Composable
-fun MetadataRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String) {
-    Row(
-        modifier = Modifier.padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-            modifier = Modifier.size(18.dp)
-        )
+fun MetadataRow(icon: ImageVector, label: String, value: String) {
+    Row(modifier = Modifier.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(12.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.outline,
-            modifier = Modifier.width(80.dp)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold
-        )
-    }
-}
-
-@OptIn(UnstableApi::class)
-@Composable
-fun VideoPlayer(assetId: String, baseUrl: String?, apiKey: String) {
-    if (baseUrl == null) return
-
-    val context = LocalContext.current
-    var isReady by remember { mutableStateOf(false) }
-    
-    val exoPlayer = remember {
-        ExoPlayer.Builder(context).build().apply {
-            repeatMode = Player.REPEAT_MODE_ONE
-            addListener(object : Player.Listener {
-                override fun onPlaybackStateChanged(state: Int) {
-                    isReady = state == Player.STATE_READY
-                }
-            })
-        }
-    }
-
-    DisposableEffect(Unit) {
-        onDispose { exoPlayer.release() }
-    }
-
-    LaunchedEffect(assetId, baseUrl, apiKey) {
-        isReady = false
-        val videoUrl = "$baseUrl/api/assets/$assetId/video/playback"
-        val dataSourceFactory = DefaultHttpDataSource.Factory()
-            .setDefaultRequestProperties(mapOf("x-api-key" to apiKey))
-        val mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory)
-            .createMediaSource(MediaItem.fromUri(videoUrl))
-        exoPlayer.setMediaSource(mediaSource)
-        exoPlayer.prepare()
-        exoPlayer.playWhenReady = true
-    }
-
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        if (!isReady) {
-            AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data("$baseUrl/api/assets/$assetId/thumbnail?format=JPEG&size=preview")
-                    .addHeader("x-api-key", apiKey)
-                    .build(),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-            CircularProgressIndicator(color = Color.White.copy(alpha = 0.5f), modifier = Modifier.size(48.dp))
-        }
-
-        AndroidView(
-            factory = {
-                PlayerView(it).apply {
-                    player = exoPlayer
-                    useController = false
-                }
-            },
-            modifier = Modifier.fillMaxSize().alpha(if (isReady) 1f else 0f)
-        )
+        Text(text = label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline, modifier = Modifier.width(80.dp))
+        Text(text = value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
     }
 }

@@ -3,6 +3,8 @@ package com.example.immichswipe.domain.model
 /**
  * Représente une photo ou vidéo (Asset) sur Immich.
  */
+import com.google.gson.annotations.SerializedName
+
 data class Asset(
     val id: String,
     val deviceAssetId: String,
@@ -12,15 +14,19 @@ data class Asset(
     val duration: String? = null,
     val isFavorite: Boolean = false,
     val originalFileName: String? = null,
+    @SerializedName("extension")
     val fileExtension: String? = null,
     val exifInfo: ExifInfo? = null
 )
 
 data class ExifInfo(
+    @SerializedName("fileSizeInByte")
     val fileSizeInBytes: Long? = null,
     val projectionType: String? = null,
     val orientation: String? = null,
     val dateTimeOriginal: String? = null,
+    @SerializedName("exifImageWidth")
     val imageWidth: Int? = null,
+    @SerializedName("exifImageHeight")
     val imageHeight: Int? = null
 )
