@@ -357,11 +357,11 @@ fun SwipeCard(
                                 val currentX = offsetX.value
                                 val currentY = offsetY.value
 
-                                if (currentX > 400) {
-                                    offsetX.animateTo(1500f, tween(250))
+                                if (currentX > 250) {
+                                    offsetX.animateTo(1500f, tween(150))
                                     onSwipe(SwipeDecision.KEEP)
-                                } else if (currentX < -400) {
-                                    offsetX.animateTo(-1500f, tween(250))
+                                } else if (currentX < -250) {
+                                    offsetX.animateTo(-1500f, tween(150))
                                     onSwipe(SwipeDecision.DELETE)
                                 } else {
                                     launch { offsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioLowBouncy)) }
@@ -372,14 +372,14 @@ fun SwipeCard(
                                     val wasOpen = offsetY.targetValue < -metadataHeightPx / 2
                                     if (wasOpen) {
                                         // Si c'était ouvert, on ferme au moindre geste vers le bas (seuil 90% de hauteur)
-                                        if (currentY < -metadataHeightPx * 0.9f) {
+                                        if (currentY < -metadataHeightPx * 0.95f) {
                                             offsetY.animateTo(-metadataHeightPx, spring(dampingRatio = Spring.DampingRatioLowBouncy))
                                         } else {
                                             offsetY.animateTo(0f, spring(dampingRatio = Spring.DampingRatioLowBouncy))
                                         }
                                     } else {
                                         // Si c'était fermé, on ouvre si on dépasse 10% de la hauteur vers le haut
-                                        if (currentY < -metadataHeightPx * 0.1f) {
+                                        if (currentY < -metadataHeightPx * 0.05f) {
                                             offsetY.animateTo(-metadataHeightPx, spring(dampingRatio = Spring.DampingRatioLowBouncy))
                                         } else {
                                             offsetY.animateTo(0f, spring(dampingRatio = Spring.DampingRatioLowBouncy))
@@ -479,8 +479,16 @@ fun SwipeCard(
                     }
                 }
 
-                if (offsetX.value > 150) IndicatorBadge("KEEP", MaterialGreen, Alignment.TopStart)
-                else if (offsetX.value < -150) IndicatorBadge("DELETE", MaterialRed, Alignment.TopEnd)
+                if (!isNext) {
+                    val keepAlpha = (offsetX.value / 200f).coerceIn(0f, 1f)
+                    val deleteAlpha = (-offsetX.value / 200f).coerceIn(0f, 1f)
+
+                    if (keepAlpha > 0f) {
+                        IndicatorBadge("KEEP", MaterialGreen, Alignment.TopStart, keepAlpha * 0.9f)
+                    } else if (deleteAlpha > 0f) {
+                        IndicatorBadge("DELETE", MaterialRed, Alignment.TopEnd, deleteAlpha * 0.9f)
+                    }
+                }
             }
         }
     }
@@ -572,7 +580,7 @@ fun FullscreenViewer(
                 .pointerInput(Unit) {
                     detectDragGestures(
                         onDragEnd = {
-                            if (swipeY.value > 300) onClose()
+                            if (swipeY.value > 120) onClose()
                             else scope.launch { swipeY.animateTo(0f) }
                         },
                         onDrag = { change, dragAmount ->
@@ -613,8 +621,14 @@ fun FullscreenViewer(
 }
 
 @Composable
-fun IndicatorBadge(text: String, color: Color, align: Alignment) {
-    Box(modifier = Modifier.padding(40.dp).fillMaxSize(), contentAlignment = align) {
+fun IndicatorBadge(text: String, color: Color, align: Alignment, alpha: Float) {
+    Box(
+        modifier = Modifier
+            .padding(40.dp)
+            .fillMaxSize()
+            .graphicsLayer { this.alpha = alpha },
+        contentAlignment = align
+    ) {
         Surface(
             color = Color.Transparent, contentColor = color, shape = RoundedCornerShape(8.dp),
             border = BorderStroke(2.dp, color.copy(alpha = 0.6f))
@@ -622,7 +636,7 @@ fun IndicatorBadge(text: String, color: Color, align: Alignment) {
             Text(
                 text = text, fontSize = 32.sp, fontWeight = FontWeight.Black,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
-                    .graphicsLayer { rotationZ = if (align == Alignment.TopStart) -15f else 15f }.alpha(0.8f)
+                    .graphicsLayer { rotationZ = if (align == Alignment.TopStart) -15f else 15f }
             )
         }
     }
