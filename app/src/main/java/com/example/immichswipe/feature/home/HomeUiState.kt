@@ -15,6 +15,7 @@ enum class HomeTab {
  */
 data class HomeUiState(
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val user: User? = null,
     val albums: List<Album> = emptyList(),
     val currentTab: HomeTab = HomeTab.HOME,

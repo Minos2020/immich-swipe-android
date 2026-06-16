@@ -31,6 +31,7 @@ import com.example.immichswipe.core.SessionManager
 import com.example.immichswipe.data.repository.AssetRepository
 import com.example.immichswipe.domain.model.Album
 import com.example.immichswipe.feature.swipe.SwipeScreen
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -156,6 +157,8 @@ fun HomeScreen(
                     } else {
                         AlbumList(
                             albums = uiState.albums,
+                            isRefreshing = uiState.isRefreshing,
+                            onRefresh = { viewModel.refreshAlbums() },
                             onAlbumClick = { viewModel.onAlbumSelected(it) }
                         )
                     }
@@ -182,23 +185,34 @@ fun HomeScreen(
 }
 
 @Composable
-fun AlbumList(albums: List<Album>, onAlbumClick: (Album) -> Unit) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+fun AlbumList(
+    albums: List<Album>,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+    onAlbumClick: (Album) -> Unit
+) {
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        modifier = Modifier.fillMaxSize()
     ) {
-        item {
-            Text(
-                text = "Mes Albums",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-        }
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                Text(
+                    text = "Mes Albums",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
 
-        items(albums) { album ->
-            AlbumItem(album = album, onClick = { onAlbumClick(album) })
+            items(albums) { album ->
+                AlbumItem(album = album, onClick = { onAlbumClick(album) })
+            }
         }
     }
 }

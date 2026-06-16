@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import com.example.immichswipe.core.SessionManager
 import com.example.immichswipe.data.repository.SessionRepository
 import com.example.immichswipe.domain.model.Album
@@ -58,6 +59,38 @@ class HomeViewModel(
     }
 
     /**
+     * Rafraîchit uniquement la liste des albums.
+     * Utilisé pour le "Pull to Refresh".
+     */
+    fun refreshAlbums() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isRefreshing = true)
+            try {
+                // On ajoute un petit délai artificiel (ex: 800ms) pour que l'utilisateur
+                // ait bien le temps de voir l'indicateur et sente que l'action est prise en compte
+                val fetchJob = launch {
+                    val albums = albumRepository.getAlbums()
+                    _uiState.value = _uiState.value.copy(albums = albums)
+                }
+                
+                // On s'assure que l'animation dure au moins 800ms même si le réseau est ultra rapide
+                delay(800)
+                fetchJob.join()
+                
+                _uiState.value = _uiState.value.copy(
+                    isRefreshing = false,
+                    error = null
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isRefreshing = false,
+                    error = e.message ?: "Erreur lors du rafraîchissement"
+                )
+            }
+        }
+    }
+
+    /**
      * Change l'onglet actuel de la barre de navigation.
      */
     fun onTabSelected(tab: HomeTab) {
@@ -80,6 +113,8 @@ class HomeViewModel(
      */
     fun logout() {
         viewModelScope.launch {
+            // Réinitialise l'onglet sur HOME pour la prochaine connexion
+            _uiState.value = _uiState.value.copy(currentTab = HomeTab.HOME)
             sessionRepository.clearSession()
         }
     }

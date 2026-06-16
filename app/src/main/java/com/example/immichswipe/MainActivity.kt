@@ -78,16 +78,22 @@ class MainActivity : ComponentActivity() {
                             }
 
                             targetState.isLoggedIn -> {
-                                val api = SessionManager.api ?: throw IllegalStateException("API not ready")
-                                val albumRepository = AlbumRepository(api)
-                                val assetRepository = AssetRepository(api)
-                                
-                                HomeScreen(
-                                    viewModel = viewModel(
-                                        factory = HomeViewModelFactory(sessionRepository, albumRepository)
-                                    ),
-                                    assetRepository = assetRepository
-                                )
+                                val api = SessionManager.api
+                                if (api != null) {
+                                    val albumRepository = AlbumRepository(api)
+                                    val assetRepository = AssetRepository(api)
+
+                                    HomeScreen(
+                                        viewModel = viewModel(
+                                            factory = HomeViewModelFactory(sessionRepository, albumRepository)
+                                        ),
+                                        assetRepository = assetRepository
+                                    )
+                                } else {
+                                    // Sécurité : si l'API n'est plus là mais qu'on est noté connecté,
+                                    // on affiche un chargement le temps que l'état se synchronise.
+                                    LoadingScreen()
+                                }
                             }
 
                             else -> {
