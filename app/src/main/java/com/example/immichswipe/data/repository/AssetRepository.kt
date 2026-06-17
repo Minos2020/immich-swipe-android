@@ -1,5 +1,6 @@
 package com.example.immichswipe.data.repository
 
+import com.example.immichswipe.data.api.DeleteAssetsRequest
 import com.example.immichswipe.data.api.ImmichApi
 import com.example.immichswipe.domain.model.Asset
 
@@ -21,5 +22,14 @@ class AssetRepository(
      */
     suspend fun getAssetDetail(assetId: String): Asset {
         return api.getAssetDetail(assetId)
+    }
+
+    /**
+     * Supprime plusieurs assets du serveur Immich.
+     */
+    suspend fun deleteAssets(assetIds: List<String>) {
+        if (assetIds.isNotEmpty()) {
+            api.deleteAssets(DeleteAssetsRequest(ids = assetIds, force = false))
+        }
     }
 }

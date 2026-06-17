@@ -45,6 +45,7 @@ import com.example.immichswipe.core.PlaybackBehavior
 import com.example.immichswipe.core.AppTheme
 import com.example.immichswipe.core.SessionManager
 import com.example.immichswipe.data.repository.AssetRepository
+import com.example.immichswipe.data.repository.SwipeDecisionRepository
 import com.example.immichswipe.domain.model.Album
 import com.example.immichswipe.feature.settings.SettingsScreen
 import com.example.immichswipe.feature.settings.SettingsViewModel
@@ -57,6 +58,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 fun HomeScreen(
     viewModel: HomeViewModel,
     assetRepository: AssetRepository,
+    swipeDecisionRepository: SwipeDecisionRepository,
     modifier: Modifier = Modifier,
 ) {
     val uiState: HomeUiState by viewModel.uiState.collectAsState()
@@ -207,6 +209,7 @@ fun HomeScreen(
                         SwipeScreen(
                             album = uiState.selectedAlbum!!,
                             assetRepository = assetRepository,
+                            swipeDecisionRepository = swipeDecisionRepository,
                             sessionRepository = viewModel.getSessionRepository()
                         )
                     } else {

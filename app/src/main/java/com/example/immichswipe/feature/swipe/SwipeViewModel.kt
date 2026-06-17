@@ -6,15 +6,19 @@ import com.example.immichswipe.data.repository.AssetRepository
 import com.example.immichswipe.core.PlaybackBehavior
 import com.example.immichswipe.core.IconPosition
 import com.example.immichswipe.data.repository.SessionRepository
+import com.example.immichswipe.data.repository.SwipeDecisionRepository
 import com.example.immichswipe.domain.model.Album
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 class SwipeViewModel(
     private val assetRepository: AssetRepository,
     private val sessionRepository: SessionRepository,
+    private val swipeDecisionRepository: SwipeDecisionRepository,
     private val album: Album
 ) : ViewModel() {
 
@@ -22,7 +26,7 @@ class SwipeViewModel(
     val uiState: StateFlow<SwipeUiState> = _uiState.asStateFlow()
 
     init {
-        loadAssets()
+        loadAssetsAndDecisions()
         observePlaybackBehavior()
         observeSwipeInversion()
         observeFullscreenButtonPosition()
@@ -61,18 +65,36 @@ class SwipeViewModel(
         }
     }
 
-    private fun loadAssets() {
+    private fun loadAssetsAndDecisions() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
+                // On charge les assets depuis l'API
                 val assets = assetRepository.getAssetsByAlbum(album.id)
+                
+                // On charge les décisions locales déjà prises pour cet album
+                // On utilise first() pour avoir une photo à l'instant T sans observer en continu ici
+                val localDecisions = swipeDecisionRepository.getDecisionsForAlbum(album.id).first()
+                
+                // On transforme la liste de SwipeDecisionEntity en Map<String, SwipeDecision>
+                val decisionMap = localDecisions.associate { entity ->
+                    entity.assetId to SwipeDecision.valueOf(entity.decision)
+                }
+
+                // On cherche le premier index non traité
+                val firstUnprocessedIndex = assets.indexOfFirst { !decisionMap.containsKey(it.id) }
+                    .let { if (it == -1) assets.size else it }
+
                 _uiState.value = _uiState.value.copy(
                     assets = assets,
+                    decisions = decisionMap,
+                    currentIndex = firstUnprocessedIndex,
                     isLoading = false
                 )
-                // On charge les détails du premier asset
-                if (assets.isNotEmpty()) {
-                    loadAssetDetail(assets[0].id, 0)
+                
+                // On charge les détails de l'asset actuel
+                if (firstUnprocessedIndex < assets.size) {
+                    loadAssetDetail(assets[firstUnprocessedIndex].id, firstUnprocessedIndex)
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
@@ -103,6 +125,16 @@ class SwipeViewModel(
         val currentState = _uiState.value
         val currentAsset = currentState.currentAsset ?: return
 
+        // 1. Sauvegarde en base locale (Room)
+        viewModelScope.launch {
+            swipeDecisionRepository.saveDecision(
+                assetId = currentAsset.id,
+                albumId = album.id,
+                decision = decision.name
+            )
+        }
+
+        // 2. Mise à jour de l'UI
         val newDecisions = currentState.decisions.toMutableMap()
         newDecisions[currentAsset.id] = decision
 
@@ -113,7 +145,7 @@ class SwipeViewModel(
         val assets = currentState.assets
         var nextIndex = -1
         
-        // 1. Chercher d'abord après l'index actuel
+        // On cherche après l'index actuel
         for (i in (currentState.currentIndex + 1) until assets.size) {
             if (!newDecisions.containsKey(assets[i].id)) {
                 nextIndex = i
@@ -121,7 +153,7 @@ class SwipeViewModel(
             }
         }
         
-        // 2. Si non trouvé, repartir du début
+        // Si non trouvé, repartir du début
         if (nextIndex == -1) {
             for (i in 0 until currentState.currentIndex) {
                 if (!newDecisions.containsKey(assets[i].id)) {
@@ -131,9 +163,9 @@ class SwipeViewModel(
             }
         }
         
-        // 3. Si toujours rien, on a vraiment fini l'album
+        // Si toujours rien, on a fini l'album
         if (nextIndex == -1) {
-            nextIndex = assets.size // Marqueur de fin
+            nextIndex = assets.size
         }
 
         _uiState.value = currentState.copy(
@@ -142,7 +174,7 @@ class SwipeViewModel(
             history = newHistory
         )
 
-        // On charge les détails du prochain asset pour anticiper
+        // Anticipation : charge les détails du prochain
         if (nextIndex < assets.size) {
             loadAssetDetail(assets[nextIndex].id, nextIndex)
         }
@@ -150,23 +182,31 @@ class SwipeViewModel(
 
     fun undo() {
         val currentState = _uiState.value
-        if (currentState.currentIndex > 0) {
-            val previousIndex = currentState.currentIndex - 1
-            val previousAssetId = currentState.assets[previousIndex].id
+        val lastAssetId = currentState.history.lastOrNull() ?: return
+
+        viewModelScope.launch {
+            // 1. Suppression en base locale
+            swipeDecisionRepository.removeDecision(lastAssetId)
             
+            // 2. Mise à jour UI
             val newDecisions = currentState.decisions.toMutableMap()
-            newDecisions.remove(previousAssetId)
+            newDecisions.remove(lastAssetId)
 
             val newHistory = currentState.history.toMutableList()
-            if (newHistory.isNotEmpty()) newHistory.removeAt(newHistory.size - 1)
+            newHistory.removeAt(newHistory.size - 1)
+
+            // On revient à l'index de l'asset qu'on vient d'annuler
+            val previousIndex = currentState.assets.indexOfFirst { it.id == lastAssetId }
 
             _uiState.value = currentState.copy(
-                currentIndex = previousIndex,
+                currentIndex = if (previousIndex != -1) previousIndex else currentState.currentIndex,
                 decisions = newDecisions,
                 history = newHistory
             )
-            // On recharge les détails au cas où ils auraient été perdus
-            loadAssetDetail(previousAssetId, previousIndex)
+            
+            if (previousIndex != -1) {
+                loadAssetDetail(lastAssetId, previousIndex)
+            }
         }
     }
 
@@ -177,6 +217,96 @@ class SwipeViewModel(
         if (index in 0 until _uiState.value.assets.size) {
             _uiState.value = _uiState.value.copy(currentIndex = index)
             loadAssetDetail(_uiState.value.assets[index].id, index)
+        }
+    }
+
+    /**
+     * Affiche ou cache l'écran de résumé.
+     */
+    fun toggleSummary(visible: Boolean) {
+        _uiState.value = _uiState.value.copy(showSummary = visible)
+    }
+
+    /**
+     * Annule une décision spécifique (utilisé depuis le résumé).
+     */
+    fun undoSpecificDecision(assetId: String) {
+        val currentState = _uiState.value
+        viewModelScope.launch {
+            // 1. Suppression base Room
+            swipeDecisionRepository.removeDecision(assetId)
+            
+            // 2. Mise à jour UI
+            val newDecisions = currentState.decisions.toMutableMap()
+            newDecisions.remove(assetId)
+            
+            val newHistory = currentState.history.toMutableList()
+            newHistory.remove(assetId)
+            
+            _uiState.value = currentState.copy(
+                decisions = newDecisions,
+                history = newHistory
+            )
+        }
+    }
+
+    /**
+     * Applique les décisions (Suppression sur Immich) et marque les assets comme traités localement.
+     */
+    fun applyChanges() {
+        val currentState = _uiState.value
+        val toDelete = currentState.decisions.filter { it.value == SwipeDecision.DELETE }.keys.toList()
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSyncing = true)
+            try {
+                // 1. Appel API pour supprimer sur Immich
+                if (toDelete.isNotEmpty()) {
+                    assetRepository.deleteAssets(toDelete)
+                }
+
+                // 2. Vérification immédiate : On recharge la liste depuis le serveur
+                val freshAssets = assetRepository.getAssetsByAlbum(album.id)
+                val freshIds = freshAssets.map { it.id }.toSet()
+
+                // 3. Identification des échecs : ceux qu'on a voulu supprimer mais qui sont encore là
+                val failedDeletions = toDelete.filter { freshIds.contains(it) }
+                
+                // 4. Nettoyage de la base locale :
+                // On supprime de Room uniquement les décisions pour les assets qui ne sont PLUS sur le serveur
+                // (car s'ils sont encore là, on veut garder notre décision pour réessayer ou pour ne pas les re-swiper)
+                val disappearedIds = currentState.decisions.keys.filter { !freshIds.contains(it) }
+                if (disappearedIds.isNotEmpty()) {
+                    swipeDecisionRepository.removeDecisions(disappearedIds)
+                }
+
+                if (failedDeletions.isNotEmpty()) {
+                    _uiState.value = _uiState.value.copy(
+                        isSyncing = false,
+                        showSummary = false,
+                        error = "Attention : ${failedDeletions.size} photos n'ont pas pu être supprimées. Vérifiez votre connexion ou vos droits."
+                    )
+                } else {
+                    // Succès total : On lance l'animation
+                    _uiState.value = _uiState.value.copy(
+                        isSyncing = false,
+                        showSummary = false,
+                        showSuccessAnimation = true
+                    )
+                    // On cache l'animation après 2.5 secondes
+                    delay(2500)
+                    _uiState.value = _uiState.value.copy(showSuccessAnimation = false)
+                }
+                
+                // On recharge tout l'état proprement (merge final)
+                loadAssetsAndDecisions()
+                
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isSyncing = false,
+                    error = "Erreur lors de la synchronisation : ${e.message}"
+                )
+            }
         }
     }
 

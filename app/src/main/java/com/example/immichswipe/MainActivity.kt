@@ -28,6 +28,8 @@ import com.example.immichswipe.data.repository.SessionRepository
 import com.example.immichswipe.data.repository.AuthRepository
 import com.example.immichswipe.data.repository.AlbumRepository
 import com.example.immichswipe.data.repository.AssetRepository
+import com.example.immichswipe.data.repository.SwipeDecisionRepository
+import com.example.immichswipe.data.local.AppDatabase
 import com.example.immichswipe.feature.auth.AuthScreen
 import com.example.immichswipe.feature.auth.AuthViewModel
 import com.example.immichswipe.feature.auth.AuthViewModelFactory
@@ -50,6 +52,10 @@ class MainActivity : ComponentActivity() {
 
         val sessionRepository = SessionRepository(applicationContext)
         val authRepository = AuthRepository()
+        
+        // Initialisation de la base de données Room et du Repository
+        val database = AppDatabase.getDatabase(applicationContext)
+        val swipeDecisionRepository = SwipeDecisionRepository(database.swipeDecisionDao())
 
         setContent {
             val appViewModel: AppViewModel = viewModel(
@@ -94,7 +100,8 @@ class MainActivity : ComponentActivity() {
                                         viewModel = viewModel(
                                             factory = HomeViewModelFactory(sessionRepository, albumRepository)
                                         ),
-                                        assetRepository = assetRepository
+                                        assetRepository = assetRepository,
+                                        swipeDecisionRepository = swipeDecisionRepository
                                     )
                                 } else {
                                     // Sécurité : si l'API n'est plus là mais qu'on est noté connecté,

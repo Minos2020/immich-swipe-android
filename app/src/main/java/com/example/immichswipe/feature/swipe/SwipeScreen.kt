@@ -64,14 +64,17 @@ import com.example.immichswipe.core.PlaybackBehavior
 import com.example.immichswipe.core.IconPosition
 import com.example.immichswipe.data.repository.AssetRepository
 import com.example.immichswipe.data.repository.SessionRepository
+import com.example.immichswipe.data.repository.SwipeDecisionRepository
 import com.example.immichswipe.domain.model.Album
 import com.example.immichswipe.domain.model.Asset
 import com.example.immichswipe.R
+import androidx.compose.ui.zIndex
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.roundToInt
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -92,12 +95,13 @@ fun Context.findActivity(): Activity? = when (this) {
 fun SwipeScreen(
     album: Album,
     assetRepository: AssetRepository,
+    swipeDecisionRepository: SwipeDecisionRepository,
     sessionRepository: SessionRepository,
     modifier: Modifier = Modifier
 ) {
     val viewModel: SwipeViewModel = viewModel(
         key = album.id,
-        factory = SwipeViewModelFactory(assetRepository, sessionRepository, album)
+        factory = SwipeViewModelFactory(assetRepository, sessionRepository, swipeDecisionRepository, album)
     )
     val uiState by viewModel.uiState.collectAsState()
 
@@ -106,7 +110,10 @@ fun SwipeScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // 0. En-tête avec nom de l'album et statistiques
-        SwipeHeader(uiState = uiState)
+        SwipeHeader(
+            uiState = uiState,
+            onSummaryClick = { viewModel.toggleSummary(true) }
+        )
 
         // 1. Timeline (Barre du haut avec vignettes)
         AssetTimeline(
@@ -205,10 +212,127 @@ fun SwipeScreen(
             }
         }
     }
+
+    // Affichage du résumé
+    if (uiState.showSummary) {
+        SummaryDialog(
+            uiState = uiState,
+            onDismiss = { viewModel.toggleSummary(false) },
+            onApply = { viewModel.applyChanges() },
+            onUndoDecision = { viewModel.undoSpecificDecision(it) }
+        )
+    }
+
+    // Animation de succès
+    if (uiState.showSuccessAnimation) {
+        SuccessAnimationOverlay()
+    }
+}
+
+
+@Composable
+fun SuccessAnimationOverlay() {
+    // États d'animation internes
+    val scale = remember { Animatable(0.7f) }
+    val alpha = remember { Animatable(0f) }
+    val iconScale = remember { Animatable(0f) }
+
+    LaunchedEffect(Unit) {
+        // Lancement synchronisé des animations
+        launch {
+            scale.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
+        }
+        launch {
+            alpha.animateTo(1f, tween(400))
+        }
+        // Petit délai pour l'icône pour créer un effet de cascade
+        delay(200)
+        iconScale.animateTo(
+            targetValue = 1.2f,
+            animationSpec = spring(dampingRatio = Spring.DampingRatioHighBouncy)
+        )
+        iconScale.animateTo(1f, spring())
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.45f * alpha.value))
+            .zIndex(100f),
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            modifier = Modifier
+                .graphicsLayer {
+                    scaleX = scale.value
+                    scaleY = scale.value
+                    this.alpha = alpha.value
+                }
+                .padding(24.dp),
+            shape = RoundedCornerShape(32.dp),
+            color = MaterialTheme.colorScheme.surfaceColorAtElevation(6.dp),
+            tonalElevation = 6.dp,
+            shadowElevation = 12.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 48.dp, vertical = 40.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    // Cercle de fond pour l'icône
+                    Box(
+                        modifier = Modifier
+                            .size(100.dp)
+                            .graphicsLayer {
+                                scaleX = iconScale.value * 1.1f
+                                scaleY = iconScale.value * 1.1f
+                            }
+                            .background(MaterialGreen.copy(alpha = 0.15f), CircleShape)
+                    )
+                    
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = MaterialGreen,
+                        modifier = Modifier
+                            .size(80.dp)
+                            .graphicsLayer {
+                                scaleX = iconScale.value
+                                scaleY = iconScale.value
+                            }
+                    )
+                }
+                
+                Spacer(Modifier.height(24.dp))
+                
+                Text(
+                    text = "Synchronisé !",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                
+                Text(
+                    text = "Vos changements sont sur Immich",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
 }
 
 @Composable
-fun SwipeHeader(uiState: SwipeUiState) {
+fun SwipeHeader(
+    uiState: SwipeUiState,
+    onSummaryClick: () -> Unit
+) {
     // Animation fluide de la progression
     val animatedProgress by animateFloatAsState(
         targetValue = uiState.progress,
@@ -226,9 +350,10 @@ fun SwipeHeader(uiState: SwipeUiState) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(36.dp)
-                .clip(RoundedCornerShape(18.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                .height(40.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .clickable { onSummaryClick() },
             contentAlignment = Alignment.CenterStart
         ) {
             // Remplissage de la progression (avec valeur animée)
@@ -244,11 +369,10 @@ fun SwipeHeader(uiState: SwipeUiState) {
                             )
                         )
                     )
-                    // On ajoute une légère couche sombre pour faire ressortir le texte blanc
                     .background(Color.Black.copy(alpha = 0.1f))
             )
             
-            // Texte de l'album (en blanc ou noir selon le contraste)
+            // Texte de l'album
             Row(
                 modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -259,13 +383,24 @@ fun SwipeHeader(uiState: SwipeUiState) {
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
-                    maxLines = 1
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f)
                 )
-                Text(
-                    text = "${(uiState.progress * 100).toInt()}%",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.9f)
-                )
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "${(uiState.progress * 100).toInt()}%",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.White.copy(alpha = 0.9f)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Icon(
+                        imageVector = Icons.Default.Assessment,
+                        contentDescription = "Résumé",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
         }
 
@@ -965,5 +1100,198 @@ fun MetadataRow(icon: ImageVector, label: String, value: String) {
         Spacer(Modifier.width(12.dp))
         Text(text = label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline, modifier = Modifier.width(80.dp))
         Text(text = value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+fun SummaryDialog(
+    uiState: SwipeUiState,
+    onDismiss: () -> Unit,
+    onApply: () -> Unit,
+    onUndoDecision: (String) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = if (uiState.isSyncing) ({}) else onDismiss,
+        title = {
+            Text(
+                text = "Résumé du tri",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Album : ${uiState.albumName}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                
+                Spacer(Modifier.height(16.dp))
+                
+                // Statistiques rapides
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    StatSummaryBox(label = "Gardés", count = uiState.keptCount, color = MaterialGreen)
+                    StatSummaryBox(label = "Passés", count = uiState.skippedCount, color = Color.Gray)
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // Section "À Supprimer" avec miniatures
+                Text(
+                    text = "À supprimer (${uiState.deletedCount})",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialRed
+                )
+                
+                Spacer(Modifier.height(8.dp))
+
+                if (uiState.deletedCount > 0) {
+                    val deletedAssets = uiState.assets.filter { uiState.decisions[it.id] == SwipeDecision.DELETE }
+                    
+                    Box(modifier = Modifier.height(120.dp).fillMaxWidth()) {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(end = 16.dp)
+                        ) {
+                            items(deletedAssets) { asset ->
+                                DeletedAssetThumbnail(
+                                    asset = asset,
+                                    onUndo = { onUndoDecision(asset.id) }
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Text(
+                        "Aucune photo à supprimer.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(vertical = 16.dp)
+                    )
+                }
+
+                if (uiState.remainingCount > 0) {
+                    Spacer(Modifier.height(16.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = "Note : Il reste encore ${uiState.remainingCount} photos à trier.",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(8.dp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                
+                if (uiState.isSyncing) {
+                    Spacer(Modifier.height(24.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(12.dp))
+                        Text("Synchronisation avec Immich...", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onApply,
+                enabled = !uiState.isSyncing && uiState.deletedCount > 0,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialRed),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                if (uiState.isSyncing) {
+                    Text("En cours...")
+                } else {
+                    Text("Confirmer la suppression")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                enabled = !uiState.isSyncing
+            ) {
+                Text("Retour")
+            }
+        },
+        shape = RoundedCornerShape(28.dp)
+    )
+}
+
+@Composable
+fun StatSummaryBox(label: String, count: Int, color: Color) {
+    Column(
+        modifier = Modifier
+            .background(color.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        Text(text = count.toString(), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = color)
+        Text(text = label, style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.8f))
+    }
+}
+
+@Composable
+fun DeletedAssetThumbnail(asset: Asset, onUndo: () -> Unit) {
+    val baseUrl = SessionManager.getBaseUrl()?.removeSuffix("/")
+    val apiKey = SessionManager.getApiKey() ?: ""
+
+    Box(
+        modifier = Modifier
+            .size(100.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .clickable { onUndo() }
+    ) {
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data("$baseUrl/api/assets/${asset.id}/thumbnail?format=WEBP")
+                .addHeader("x-api-key", apiKey)
+                .build(),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+        
+        // Overlay pour l'annulation
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.2f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Undo,
+                contentDescription = "Annuler",
+                tint = Color.White,
+                modifier = Modifier.size(24.dp).background(Color.Black.copy(alpha = 0.4f), CircleShape).padding(4.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun SummaryRow(label: String, count: Int, color: Color, icon: ImageVector) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
+        Spacer(Modifier.width(16.dp))
+        Column {
+            Text(text = count.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(text = label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+        }
     }
 }
