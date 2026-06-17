@@ -98,7 +98,7 @@ class MainActivity : ComponentActivity() {
 
                                     HomeScreen(
                                         viewModel = viewModel(
-                                            factory = HomeViewModelFactory(sessionRepository, albumRepository)
+                                            factory = HomeViewModelFactory(sessionRepository, albumRepository, swipeDecisionRepository)
                                         ),
                                         assetRepository = assetRepository,
                                         swipeDecisionRepository = swipeDecisionRepository

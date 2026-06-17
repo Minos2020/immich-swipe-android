@@ -1,22 +1,25 @@
 package com.example.immichswipe.data.local.entity
 
 import androidx.room.Entity
-import androidx.room.PrimaryKey
 
 /**
- * Représente une décision de tri (Swipe) pour un asset donné.
+ * Représente une décision de tri (Swipe) pour un asset donné dans un album donné.
+ *
+ * La clé primaire est composée du couple (assetId, albumId) car une même photo
+ * peut être présente dans plusieurs albums Immich.
  *
  * @property assetId L'identifiant unique de la photo/vidéo sur le serveur Immich.
- *                   C'est notre clé primaire car on ne veut qu'une seule décision par asset.
- * @property albumId L'identifiant de l'album auquel appartient cet asset.
- *                   Utile pour filtrer les décisions par album.
+ * @property albumId L'identifiant de l'album auquel appartient cet asset dans cette session.
  * @property decision La décision prise : "KEEP" (Garder), "DELETE" (Supprimer), "SKIP" (Passer).
  * @property createdAt Le moment où la décision a été prise (pour l'historique).
  * @property isSynced Indique si cette décision a été synchronisée avec le serveur Immich.
  */
-@Entity(tableName = "swipe_decisions")
+@Entity(
+    tableName = "swipe_decisions",
+    primaryKeys = ["assetId", "albumId"]
+)
 data class SwipeDecisionEntity(
-    @PrimaryKey val assetId: String,
+    val assetId: String,
     val albumId: String,
     val decision: String,
     val createdAt: Long = System.currentTimeMillis(),

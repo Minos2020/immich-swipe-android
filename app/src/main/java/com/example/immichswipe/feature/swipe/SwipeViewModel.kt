@@ -186,30 +186,53 @@ class SwipeViewModel(
 
     fun undo() {
         val currentState = _uiState.value
-        val lastAssetId = currentState.history.lastOrNull() ?: return
+        val lastAssetIdFromHistory = currentState.history.lastOrNull()
 
         viewModelScope.launch {
-            // 1. Suppression en base locale
-            swipeDecisionRepository.removeDecision(lastAssetId)
-            
-            // 2. Mise à jour UI
-            val newDecisions = currentState.decisions.toMutableMap()
-            newDecisions.remove(lastAssetId)
+            if (lastAssetIdFromHistory != null) {
+                // 1. LOGIQUE DE SESSION (Historique présent)
+                swipeDecisionRepository.removeDecision(lastAssetIdFromHistory, album.id)
+                
+                val newDecisions = currentState.decisions.toMutableMap()
+                newDecisions.remove(lastAssetIdFromHistory)
 
-            val newHistory = currentState.history.toMutableList()
-            newHistory.removeAt(newHistory.size - 1)
+                val newHistory = currentState.history.toMutableList()
+                newHistory.removeAt(newHistory.size - 1)
 
-            // On revient à l'index de l'asset qu'on vient d'annuler
-            val previousIndex = currentState.assets.indexOfFirst { it.id == lastAssetId }
+                val previousIndex = currentState.assets.indexOfFirst { it.id == lastAssetIdFromHistory }
 
-            _uiState.value = currentState.copy(
-                currentIndex = if (previousIndex != -1) previousIndex else currentState.currentIndex,
-                decisions = newDecisions,
-                history = newHistory
-            )
-            
-            if (previousIndex != -1) {
-                loadAssetDetail(lastAssetId, previousIndex)
+                _uiState.value = currentState.copy(
+                    currentIndex = if (previousIndex != -1) previousIndex else currentState.currentIndex,
+                    decisions = newDecisions,
+                    history = newHistory
+                )
+                
+                if (previousIndex != -1) {
+                    loadAssetDetail(lastAssetIdFromHistory, previousIndex)
+                }
+            } else if (currentState.currentIndex > 0) {
+                // 2. LOGIQUE DE REMONTÉE (Historique vide, on recule manuellement)
+                // "annule l'asset affiché actuellement, puis passe au précédent"
+                val currentAsset = currentState.currentAsset
+                val previousIndex = currentState.currentIndex - 1
+                val previousAssetId = currentState.assets[previousIndex].id
+
+                // On nettoie UNIQUEMENT l'actuel
+                if (currentAsset != null) {
+                    swipeDecisionRepository.removeDecision(currentAsset.id, album.id)
+                }
+                
+                val newDecisions = currentState.decisions.toMutableMap()
+                if (currentAsset != null) {
+                    newDecisions.remove(currentAsset.id)
+                }
+
+                _uiState.value = currentState.copy(
+                    currentIndex = previousIndex,
+                    decisions = newDecisions
+                )
+                
+                loadAssetDetail(previousAssetId, previousIndex)
             }
         }
     }
@@ -238,7 +261,7 @@ class SwipeViewModel(
         val currentState = _uiState.value
         viewModelScope.launch {
             // 1. Suppression base Room
-            swipeDecisionRepository.removeDecision(assetId)
+            swipeDecisionRepository.removeDecision(assetId, album.id)
             
             // 2. Mise à jour UI
             val newDecisions = currentState.decisions.toMutableMap()
@@ -281,7 +304,7 @@ class SwipeViewModel(
                 // (car s'ils sont encore là, on veut garder notre décision pour réessayer ou pour ne pas les re-swiper)
                 val disappearedIds = currentState.decisions.keys.filter { !freshIds.contains(it) }
                 if (disappearedIds.isNotEmpty()) {
-                    swipeDecisionRepository.removeDecisions(disappearedIds)
+                    swipeDecisionRepository.removeDecisions(disappearedIds, album.id)
                 }
 
                 if (failedDeletions.isNotEmpty()) {

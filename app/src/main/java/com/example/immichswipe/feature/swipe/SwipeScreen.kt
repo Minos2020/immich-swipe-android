@@ -196,7 +196,7 @@ fun SwipeScreen(
 
             IconButton(
                 onClick = { viewModel.undo() },
-                enabled = uiState.currentIndex > 0
+                enabled = uiState.currentIndex > 0 || uiState.history.isNotEmpty()
             ) {
                 Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Annuler")
             }

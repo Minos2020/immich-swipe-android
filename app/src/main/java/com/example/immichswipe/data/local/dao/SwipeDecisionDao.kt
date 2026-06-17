@@ -29,10 +29,10 @@ interface SwipeDecisionDao {
     fun getDecisionsForAlbum(albumId: String): Flow<List<SwipeDecisionEntity>>
 
     /**
-     * Récupère une décision spécifique.
+     * Récupère une décision spécifique pour un asset dans un album donné.
      */
-    @Query("SELECT * FROM swipe_decisions WHERE assetId = :assetId")
-    suspend fun getDecisionForAsset(assetId: String): SwipeDecisionEntity?
+    @Query("SELECT * FROM swipe_decisions WHERE assetId = :assetId AND albumId = :albumId")
+    suspend fun getDecisionForAsset(assetId: String, albumId: String): SwipeDecisionEntity?
 
     /**
      * Supprime toutes les décisions d'un album (par exemple après une synchro réussie).
@@ -41,8 +41,36 @@ interface SwipeDecisionDao {
     suspend fun deleteDecisionsForAlbum(albumId: String)
     
     /**
-     * Supprime une décision spécifique.
+     * Supprime une décision spécifique pour un asset dans un album donné.
      */
-    @Query("DELETE FROM swipe_decisions WHERE assetId = :assetId")
-    suspend fun deleteDecision(assetId: String)
+    @Query("DELETE FROM swipe_decisions WHERE assetId = :assetId AND albumId = :albumId")
+    suspend fun deleteDecision(assetId: String, albumId: String)
+    
+    /**
+     * Compte le nombre de décisions prises pour un album spécifique.
+     */
+    @Query("SELECT COUNT(*) FROM swipe_decisions WHERE albumId = :albumId")
+    suspend fun getDecisionCountForAlbum(albumId: String): Int
+
+    /**
+     * Récupère les statistiques de décisions pour tous les albums sous forme de Flow.
+     * On compte le total et spécifiquement les demandes de suppression.
+     */
+    @Query("""
+        SELECT albumId, 
+               COUNT(*) as totalCount, 
+               SUM(CASE WHEN decision = 'DELETE' THEN 1 ELSE 0 END) as deleteCount 
+        FROM swipe_decisions 
+        GROUP BY albumId
+    """)
+    fun getAllAlbumDecisionCounts(): Flow<List<AlbumDecisionCount>>
 }
+
+/**
+ * Objet pour transporter les statistiques par album.
+ */
+data class AlbumDecisionCount(
+    val albumId: String,
+    val totalCount: Int,
+    val deleteCount: Int
+)

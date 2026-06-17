@@ -1,5 +1,6 @@
 package com.example.immichswipe.data.repository
 
+import com.example.immichswipe.data.local.dao.AlbumDecisionCount
 import com.example.immichswipe.data.local.dao.SwipeDecisionDao
 import com.example.immichswipe.data.local.entity.SwipeDecisionEntity
 import kotlinx.coroutines.flow.Flow
@@ -11,6 +12,12 @@ import kotlinx.coroutines.flow.Flow
 class SwipeDecisionRepository(
     private val swipeDecisionDao: SwipeDecisionDao
 ) {
+    /**
+     * Observe le compte des décisions pour tous les albums.
+     */
+    fun getAllAlbumDecisionCounts(): Flow<List<AlbumDecisionCount>> {
+        return swipeDecisionDao.getAllAlbumDecisionCounts()
+    }
 
     /**
      * Enregistre un nouveau swipe en base locale.
@@ -36,15 +43,15 @@ class SwipeDecisionRepository(
     /**
      * Supprime une décision (si l'utilisateur veut annuler un swipe par exemple).
      */
-    suspend fun removeDecision(assetId: String) {
-        swipeDecisionDao.deleteDecision(assetId)
+    suspend fun removeDecision(assetId: String, albumId: String) {
+        swipeDecisionDao.deleteDecision(assetId, albumId)
     }
 
     /**
-     * Supprime plusieurs décisions d'un coup.
+     * Supprime plusieurs décisions d'un coup pour un album donné.
      */
-    suspend fun removeDecisions(assetIds: List<String>) {
-        assetIds.forEach { swipeDecisionDao.deleteDecision(it) }
+    suspend fun removeDecisions(assetIds: List<String>, albumId: String) {
+        assetIds.forEach { swipeDecisionDao.deleteDecision(it, albumId) }
     }
 
     /**

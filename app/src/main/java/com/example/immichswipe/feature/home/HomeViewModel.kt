@@ -13,6 +13,7 @@ import com.example.immichswipe.core.SessionManager
 import com.example.immichswipe.core.PlaybackBehavior
 import com.example.immichswipe.core.AppTheme
 import com.example.immichswipe.data.repository.SessionRepository
+import com.example.immichswipe.data.repository.SwipeDecisionRepository
 import com.example.immichswipe.domain.model.Album
 
 /**
@@ -21,7 +22,8 @@ import com.example.immichswipe.domain.model.Album
  */
 class HomeViewModel(
     private val sessionRepository: SessionRepository,
-    private val albumRepository: AlbumRepository
+    private val albumRepository: AlbumRepository,
+    private val swipeDecisionRepository: SwipeDecisionRepository
 ) : ViewModel() {
     
     private val userRepository by lazy { 
@@ -45,6 +47,18 @@ class HomeViewModel(
         viewModelScope.launch {
             sessionRepository.themeMode.collect { theme ->
                 _uiState.value = _uiState.value.copy(themeMode = theme)
+            }
+        }
+
+        // Observe les décisions de tri en temps réel pour mettre à jour les barres de progression
+        viewModelScope.launch {
+            swipeDecisionRepository.getAllAlbumDecisionCounts().collect { stats ->
+                val treatedMap = stats.associate { it.albumId to it.totalCount }
+                val deleteMap = stats.associate { it.albumId to it.deleteCount }
+                _uiState.value = _uiState.value.copy(
+                    albumTreatedCounts = treatedMap,
+                    albumPendingDeletes = deleteMap
+                )
             }
         }
     }
@@ -147,7 +161,8 @@ class HomeViewModel(
     fun onAlbumSelected(album: Album) {
         _uiState.value = _uiState.value.copy(
             selectedAlbum = album,
-            currentTab = HomeTab.SWIPE
+            currentTab = HomeTab.SWIPE,
+            previousTab = HomeTab.HOME // On mémorise qu'on vient de l'accueil
         )
     }
 
@@ -180,5 +195,19 @@ class HomeViewModel(
             _uiState.value = _uiState.value.copy(currentTab = HomeTab.HOME)
             sessionRepository.clearSession()
         }
+    }
+
+    /**
+     * Met à jour la recherche d'albums.
+     */
+    fun onSearchQueryChanged(query: String) {
+        _uiState.value = _uiState.value.copy(searchQuery = query)
+    }
+
+    /**
+     * Bascule entre la vue liste et la vue grille.
+     */
+    fun toggleLayoutMode() {
+        _uiState.value = _uiState.value.copy(isGridView = !_uiState.value.isGridView)
     }
 }

@@ -13,7 +13,7 @@ import com.example.immichswipe.data.local.entity.SwipeDecisionEntity
  */
 @Database(
     entities = [SwipeDecisionEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

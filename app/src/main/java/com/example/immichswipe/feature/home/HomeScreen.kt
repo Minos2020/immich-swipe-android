@@ -23,6 +23,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
@@ -53,6 +54,14 @@ import com.example.immichswipe.feature.settings.SettingsViewModelFactory
 import com.example.immichswipe.feature.swipe.SwipeScreen
 import androidx.lifecycle.viewmodel.compose.viewModel
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items as gridItems
+import androidx.compose.ui.graphics.Brush
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -63,6 +72,7 @@ fun HomeScreen(
 ) {
     val uiState: HomeUiState by viewModel.uiState.collectAsState()
     val isSettings = uiState.currentTab == HomeTab.SETTINGS
+    val isHome = uiState.currentTab == HomeTab.HOME
 
     // Charger l'utilisateur et les albums au premier affichage
     LaunchedEffect(Unit) {
@@ -70,7 +80,8 @@ fun HomeScreen(
     }
 
     // Gestion du retour physique/gestuel du téléphone
-    BackHandler(enabled = isSettings) {
+    // Activé si on n'est pas sur l'onglet HOME (donc en SWIPE ou SETTINGS)
+    BackHandler(enabled = uiState.currentTab != HomeTab.HOME) {
         viewModel.goBack()
     }
 
@@ -92,76 +103,96 @@ fun HomeScreen(
                 )
             } else {
                 // Barre principale avec logo et profil
-                TopAppBar(
-                    title = {
-                        Image(
-                            painter = painterResource(id = R.drawable.logo_immichswipe_couleurs),
-                            contentDescription = "Logo Immich Swipe",
-                            modifier = Modifier
-                                .height(35.dp)
-                                .padding(vertical = 4.dp),
-                            contentScale = ContentScale.Fit
-                        )
-                    },
-                    actions = {
-                        // Indicateur de connexion discret
-                        val isConnected = uiState.user != null
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(end = 12.dp)
-                        ) {
-                            Box(
+                Column {
+                    TopAppBar(
+                        title = {
+                            Image(
+                                painter = painterResource(id = R.drawable.logo_immichswipe_couleurs),
+                                contentDescription = "Logo Immich Swipe",
                                 modifier = Modifier
-                                    .size(6.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isConnected) Color.Green else Color.Red)
+                                    .height(35.dp)
+                                    .padding(vertical = 4.dp),
+                                contentScale = ContentScale.Fit
                             )
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                text = if (isConnected) "Connected" else "Disconnected",
-                                fontSize = 10.sp,
-                                color = MaterialTheme.colorScheme.outline
-                            )
-                        }
+                        },
+                        actions = {
+                            if (isHome) {
+                                // Bouton pour basculer le layout
+                                IconButton(onClick = { viewModel.toggleLayoutMode() }) {
+                                    Icon(
+                                        imageVector = if (uiState.isGridView) Icons.Default.ViewList else Icons.Default.GridView,
+                                        contentDescription = "Changer l'affichage"
+                                    )
+                                }
+                            }
 
-                        val baseUrl = SessionManager.getBaseUrl()
-                        val userId = uiState.user?.id
-                        
-                        val profileModifier = Modifier
-                            .padding(end = 16.dp)
-                            .size(36.dp)
-                            .border(1.dp, Color(0xFF9C27B0), CircleShape)
-                            .padding(2.dp)
-                            .clip(CircleShape)
-                            .clickable { viewModel.toggleProfilePopup(true) }
+                            val baseUrl = SessionManager.getBaseUrl()
+                            val userId = uiState.user?.id
+                            
+                            val profileModifier = Modifier
+                                .padding(end = 16.dp)
+                                .size(36.dp)
+                                .border(1.dp, Color(0xFF9C27B0), CircleShape)
+                                .padding(2.dp)
+                                .clip(CircleShape)
+                                .clickable { viewModel.toggleProfilePopup(true) }
 
-                        if ((userId != null) && (baseUrl != null)) {
-                            val cleanBaseUrl = baseUrl.removeSuffix("/")
-                            AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
-                                    .data("$cleanBaseUrl/api/users/$userId/profile-image")
-                                    .addHeader("x-api-key", SessionManager.getApiKey() ?: "")
-                                    .crossfade(true)
-                                    .build(),
-                                contentDescription = "Profile Picture",
-                                placeholder = rememberVectorPainter(Icons.Default.AccountCircle),
-                                error = rememberVectorPainter(Icons.Default.AccountCircle),
-                                modifier = profileModifier,
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.AccountCircle,
-                                contentDescription = "Default Profile",
-                                modifier = profileModifier,
-                                tint = MaterialTheme.colorScheme.outline
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
+                            if ((userId != null) && (baseUrl != null)) {
+                                val cleanBaseUrl = baseUrl.removeSuffix("/")
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data("$cleanBaseUrl/api/users/$userId/profile-image")
+                                        .addHeader("x-api-key", SessionManager.getApiKey() ?: "")
+                                        .crossfade(true)
+                                        .build(),
+                                    contentDescription = "Profile Picture",
+                                    placeholder = rememberVectorPainter(Icons.Default.AccountCircle),
+                                    error = rememberVectorPainter(Icons.Default.AccountCircle),
+                                    modifier = profileModifier,
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.AccountCircle,
+                                    contentDescription = "Default Profile",
+                                    modifier = profileModifier,
+                                    tint = MaterialTheme.colorScheme.outline
+                                )
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        )
                     )
-                )
+
+                    // Barre de recherche (uniquement sur Home)
+                    if (isHome) {
+                        OutlinedTextField(
+                            value = uiState.searchQuery,
+                            onValueChange = { viewModel.onSearchQueryChanged(it) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            placeholder = { Text("Rechercher un album...", fontSize = 14.sp) },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                            trailingIcon = {
+                                if (uiState.searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { viewModel.onSearchQueryChanged("") }) {
+                                        Icon(Icons.Default.Clear, contentDescription = "Effacer", modifier = Modifier.size(20.dp))
+                                    }
+                                }
+                            },
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                focusedBorderColor = Color.Transparent,
+                                unfocusedBorderColor = Color.Transparent
+                            )
+                        )
+                    }
+                }
             }
         },
         bottomBar = {
@@ -195,13 +226,41 @@ fun HomeScreen(
                         CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                     } else if (uiState.error != null) {
                         ErrorView(error = uiState.error!!, onRetry = { viewModel.loadUser() })
+                    } else if (uiState.filteredAlbums.isEmpty() && uiState.searchQuery.isNotEmpty()) {
+                        // Aucun résultat de recherche
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(Icons.Default.SearchOff, null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.outline)
+                                Spacer(Modifier.height(8.dp))
+                                Text("Aucun album ne correspond à votre recherche", color = MaterialTheme.colorScheme.outline)
+                            }
+                        }
                     } else {
-                        AlbumList(
-                            albums = uiState.albums,
-                            isRefreshing = uiState.isRefreshing,
-                            onRefresh = { viewModel.refreshAlbums() },
-                            onAlbumClick = { viewModel.onAlbumSelected(it) }
-                        )
+                        Crossfade(
+                            targetState = uiState.isGridView,
+                            animationSpec = tween(durationMillis = 500),
+                            label = "LayoutSwitch"
+                        ) { isGrid ->
+                            if (isGrid) {
+                                AlbumGrid(
+                                    groupedAlbums = uiState.groupedAlbums,
+                                    treatedCounts = uiState.albumTreatedCounts,
+                                    pendingDeletes = uiState.albumPendingDeletes,
+                                    isRefreshing = uiState.isRefreshing,
+                                    onRefresh = { viewModel.refreshAlbums() },
+                                    onAlbumClick = { viewModel.onAlbumSelected(it) }
+                                )
+                            } else {
+                                AlbumList(
+                                    groupedAlbums = uiState.groupedAlbums,
+                                    treatedCounts = uiState.albumTreatedCounts,
+                                    pendingDeletes = uiState.albumPendingDeletes,
+                                    isRefreshing = uiState.isRefreshing,
+                                    onRefresh = { viewModel.refreshAlbums() },
+                                    onAlbumClick = { viewModel.onAlbumSelected(it) }
+                                )
+                            }
+                        }
                     }
                 }
                 HomeTab.SWIPE -> {
@@ -413,7 +472,9 @@ fun PopupActionItem(
 
 @Composable
 fun AlbumList(
-    albums: List<Album>,
+    groupedAlbums: Map<AlbumStatus, List<Album>>,
+    treatedCounts: Map<String, Int>,
+    pendingDeletes: Map<String, Int>,
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
     onAlbumClick: (Album) -> Unit
@@ -428,26 +489,225 @@ fun AlbumList(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item {
-                Text(
-                    text = "Mes Albums",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-            }
+            // On définit l'ordre d'affichage des catégories
+            val statusOrder = listOf(AlbumStatus.IN_PROGRESS, AlbumStatus.NOT_STARTED, AlbumStatus.COMPLETED)
 
-            items(albums) { album ->
-                AlbumItem(album = album, onClick = { onAlbumClick(album) })
+            statusOrder.forEach { status ->
+                val albumsInStatus = groupedAlbums[status]
+                if (!albumsInStatus.isNullOrEmpty()) {
+                    item {
+                        Text(
+                            text = status.label,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                        )
+                    }
+
+                    items(albumsInStatus) { album ->
+                        AlbumItem(
+                            album = album,
+                            treatedCount = treatedCounts[album.id] ?: 0,
+                            pendingDeleteCount = pendingDeletes[album.id] ?: 0,
+                            onClick = { onAlbumClick(album) }
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-fun AlbumItem(album: Album, onClick: () -> Unit) {
+fun AlbumGrid(
+    groupedAlbums: Map<AlbumStatus, List<Album>>,
+    treatedCounts: Map<String, Int>,
+    pendingDeletes: Map<String, Int>,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+    onAlbumClick: (Album) -> Unit
+) {
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            val statusOrder = listOf(AlbumStatus.IN_PROGRESS, AlbumStatus.NOT_STARTED, AlbumStatus.COMPLETED)
+
+            statusOrder.forEach { status ->
+                val albumsInStatus = groupedAlbums[status]
+                if (!albumsInStatus.isNullOrEmpty()) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Text(
+                            text = status.label,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                        )
+                    }
+
+                    gridItems(albumsInStatus) { album ->
+                        AlbumGridItem(
+                            album = album,
+                            treatedCount = treatedCounts[album.id] ?: 0,
+                            pendingDeleteCount = pendingDeletes[album.id] ?: 0,
+                            onClick = { onAlbumClick(album) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AlbumGridItem(album: Album, treatedCount: Int, pendingDeleteCount: Int, onClick: () -> Unit) {
     val baseUrl = SessionManager.getBaseUrl()?.removeSuffix("/")
     val apiKey = SessionManager.getApiKey() ?: ""
+    val progress = if (album.assetCount > 0) treatedCount.toFloat() / album.assetCount else 0f
+    val isCompleted = treatedCount >= album.assetCount && album.assetCount > 0
+    val isNotStarted = treatedCount == 0
+    val hasUnsyncedChanges = pendingDeleteCount > 0
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(0.8f)
+            .clickable { onClick() },
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Image de fond
+            if (album.albumThumbnailAssetId != null && baseUrl != null) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data("$baseUrl/api/assets/${album.albumThumbnailAssetId}/thumbnail?format=WEBP")
+                        .addHeader("x-api-key", apiKey)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .then(if (isCompleted) Modifier.alpha(0.8f) else Modifier)
+                )
+            } else {
+                Box(
+                    modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.PhotoLibrary, null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                }
+            }
+
+            // Overlay dégradé pour le texte
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.6f)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f))
+                        )
+                    )
+            )
+
+            // Badges d'état
+            if (isCompleted) {
+                Surface(
+                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+                    color = Color(0xFF388E3C),
+                    shape = CircleShape,
+                    shadowElevation = 4.dp
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.padding(4.dp).size(16.dp)
+                    )
+                }
+            } else if (isNotStarted) {
+                Surface(
+                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+                    color = MaterialTheme.colorScheme.tertiary,
+                    shape = RoundedCornerShape(4.dp),
+                    shadowElevation = 4.dp
+                ) {
+                    Text(
+                        text = "NEW",
+                        color = MaterialTheme.colorScheme.onTertiary,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Black,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+
+            // Contenu texte
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(8.dp)
+            ) {
+                if (hasUnsyncedChanges) {
+                    Text(
+                        text = "NON SYNCHRONISÉ",
+                        color = Color(0xFFD32F2F),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Black,
+                        modifier = Modifier.padding(bottom = 2.dp)
+                    )
+                }
+                Text(
+                    text = album.albumName,
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+                Text(
+                    text = "$treatedCount / ${album.assetCount}",
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontSize = 11.sp
+                )
+            }
+
+            // Barre de progression en haut de l'album (discrète)
+            if (progress > 0 && !isCompleted) {
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .align(Alignment.TopCenter),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = Color.Transparent
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AlbumItem(album: Album, treatedCount: Int, pendingDeleteCount: Int, onClick: () -> Unit) {
+    val baseUrl = SessionManager.getBaseUrl()?.removeSuffix("/")
+    val apiKey = SessionManager.getApiKey() ?: ""
+    val progress = if (album.assetCount > 0) treatedCount.toFloat() / album.assetCount else 0f
+    val isCompleted = treatedCount >= album.assetCount && album.assetCount > 0
+    val isNotStarted = treatedCount == 0
+    val hasUnsyncedChanges = pendingDeleteCount > 0
 
     Card(
         modifier = Modifier
@@ -456,49 +716,105 @@ fun AlbumItem(album: Album, onClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = MaterialTheme.shapes.medium
     ) {
-        Row(
-            modifier = Modifier
-                .padding(12.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                modifier = Modifier.size(60.dp),
-                shape = MaterialTheme.shapes.small,
-                color = MaterialTheme.colorScheme.primaryContainer
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .padding(12.dp)
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                if (album.albumThumbnailAssetId != null && baseUrl != null) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data("$baseUrl/api/assets/${album.albumThumbnailAssetId}/thumbnail?format=WEBP")
-                            .addHeader("x-api-key", apiKey)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        placeholder = rememberVectorPainter(Icons.Default.PhotoLibrary),
-                        error = rememberVectorPainter(Icons.Default.PhotoLibrary)
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.PhotoLibrary,
-                        contentDescription = null,
-                        modifier = Modifier.padding(16.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                Box(modifier = Modifier.size(60.dp)) {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        shape = MaterialTheme.shapes.small,
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        if (album.albumThumbnailAssetId != null && baseUrl != null) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data("$baseUrl/api/assets/${album.albumThumbnailAssetId}/thumbnail?format=WEBP")
+                                    .addHeader("x-api-key", apiKey)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                placeholder = rememberVectorPainter(Icons.Default.PhotoLibrary),
+                                error = rememberVectorPainter(Icons.Default.PhotoLibrary)
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.PhotoLibrary,
+                                contentDescription = null,
+                                modifier = Modifier.padding(16.dp),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                    
+                    // Petit badge sur la miniature
+                    if (isCompleted) {
+                        Surface(
+                            modifier = Modifier.align(Alignment.TopEnd).offset(x = 6.dp, y = (-6).dp),
+                            color = Color(0xFF388E3C),
+                            shape = CircleShape,
+                            border = BorderStroke(2.dp, MaterialTheme.colorScheme.surface)
+                        ) {
+                            Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(16.dp).padding(2.dp))
+                        }
+                    } else if (isNotStarted) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = 4.dp, y = (-4).dp)
+                                .size(14.dp)
+                                .background(MaterialTheme.colorScheme.tertiary, CircleShape)
+                                .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
+                        )
+                    }
+                }
+
+                Spacer(Modifier.width(16.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = album.albumName, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
+                        if (isCompleted) {
+                            Spacer(Modifier.width(8.dp))
+                            Text("Terminé", fontSize = 10.sp, color = Color(0xFF388E3C), fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    if (hasUnsyncedChanges) {
+                        Text(
+                            text = "Contient $pendingDeleteCount suppressions non synchronisées",
+                            fontSize = 11.sp,
+                            color = Color(0xFFD32F2F),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    if (!album.description.isNullOrBlank()) {
+                        Text(text = album.description, fontSize = 13.sp, color = MaterialTheme.colorScheme.outline, maxLines = 2)
+                    }
+                    Text(
+                        text = "$treatedCount / ${album.assetCount} triés",
+                        fontSize = 12.sp,
+                        color = if (isCompleted) Color(0xFF388E3C) else MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium
                     )
                 }
+                Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.outlineVariant)
             }
 
-            Spacer(Modifier.width(16.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = album.albumName, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                if (!album.description.isNullOrBlank()) {
-                    Text(text = album.description, fontSize = 13.sp, color = MaterialTheme.colorScheme.outline, maxLines = 2)
-                }
-                Text(text = "${album.assetCount} photos", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
+            // Barre de progression
+            if (progress > 0 && !isCompleted) {
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                )
             }
-            Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.outlineVariant)
         }
     }
 }
