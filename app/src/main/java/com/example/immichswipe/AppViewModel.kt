@@ -2,6 +2,7 @@ package com.example.immichswipe
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.immichswipe.core.AppTheme
 import com.example.immichswipe.core.SessionManager
 import com.example.immichswipe.data.repository.SessionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,7 +34,7 @@ class AppViewModel(
                     SessionManager.initialize(config)
                     
                     // On met à jour l'UI : on est connecté !
-                    _uiState.value = AppUiState(
+                    _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         isLoggedIn = true
                     )
@@ -42,11 +43,18 @@ class AppViewModel(
                     SessionManager.clear()
                     
                     // On met à jour l'UI : on est déconnecté
-                    _uiState.value = AppUiState(
+                    _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         isLoggedIn = false
                     )
                 }
+            }
+        }
+
+        // On observe aussi le thème
+        viewModelScope.launch {
+            sessionRepository.themeMode.collect { theme ->
+                _uiState.value = _uiState.value.copy(themeMode = theme)
             }
         }
     }

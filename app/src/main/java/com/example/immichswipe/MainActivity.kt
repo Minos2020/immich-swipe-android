@@ -17,7 +17,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import com.example.immichswipe.core.AppTheme
 import com.example.immichswipe.feature.home.HomeScreen
 import com.example.immichswipe.core.SessionManager
 import com.example.immichswipe.ui.theme.ImmichSwipeTheme
@@ -50,14 +52,19 @@ class MainActivity : ComponentActivity() {
         val authRepository = AuthRepository()
 
         setContent {
-            ImmichSwipeTheme {
+            val appViewModel: AppViewModel = viewModel(
+                factory = AppViewModelFactory(sessionRepository)
+            )
+            val state by appViewModel.uiState.collectAsState()
 
-                val appViewModel: AppViewModel = viewModel(
-                    factory = AppViewModelFactory(sessionRepository)
-                )
+            // Détermination du thème à appliquer
+            val useDarkTheme = when (state.themeMode) {
+                AppTheme.LIGHT -> false
+                AppTheme.DARK -> true
+                AppTheme.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
+            }
 
-                val state by appViewModel.uiState.collectAsState()
-
+            ImmichSwipeTheme(darkTheme = useDarkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

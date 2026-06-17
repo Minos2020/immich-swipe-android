@@ -1,17 +1,25 @@
 package com.example.immichswipe.feature.home
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,21 +29,28 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.activity.compose.BackHandler
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.immichswipe.R
-import com.example.immichswipe.core.SessionManager
 import com.example.immichswipe.core.PlaybackBehavior
+import com.example.immichswipe.core.AppTheme
+import com.example.immichswipe.core.SessionManager
 import com.example.immichswipe.data.repository.AssetRepository
 import com.example.immichswipe.domain.model.Album
+import com.example.immichswipe.feature.settings.SettingsScreen
+import com.example.immichswipe.feature.settings.SettingsViewModel
+import com.example.immichswipe.feature.settings.SettingsViewModelFactory
 import com.example.immichswipe.feature.swipe.SwipeScreen
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.ui.semantics.Role
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,105 +60,125 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
 ) {
     val uiState: HomeUiState by viewModel.uiState.collectAsState()
+    val isSettings = uiState.currentTab == HomeTab.SETTINGS
 
     // Charger l'utilisateur et les albums au premier affichage
     LaunchedEffect(Unit) {
         viewModel.loadUser()
     }
 
+    // Gestion du retour physique/gestuel du téléphone
+    BackHandler(enabled = isSettings) {
+        viewModel.goBack()
+    }
+
     Scaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = {
-                    Image(
-                        painter = painterResource(id = R.drawable.logo_immichswipe_couleurs),
-                        contentDescription = "Logo Immich Swipe",
-                        modifier = Modifier
-                            .height(35.dp)
-                            .padding(vertical = 4.dp),
-                        contentScale = ContentScale.Fit
+            if (isSettings) {
+                // Barre de titre pour les paramètres
+                TopAppBar(
+                    title = { Text("Paramètres") },
+                    navigationIcon = {
+                        IconButton(onClick = { viewModel.goBack() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
                     )
-                },
-                actions = {
-                    // Indicateur de connexion discret
-                    val isConnected = uiState.user != null
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(end = 12.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(if (isConnected) Color.Green else Color.Red)
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = if (isConnected) "Connected" else "Disconnected",
-                            fontSize = 10.sp,
-                            color = MaterialTheme.colorScheme.outline
-                        )
-                    }
-
-                    val baseUrl = SessionManager.getBaseUrl()
-                    val userId = uiState.user?.id
-                    
-                    val profileModifier = Modifier
-                        .padding(end = 16.dp)
-                        .size(36.dp)
-                        .border(1.dp, Color(0xFF9C27B0), CircleShape)
-                        .padding(2.dp)
-                        .clip(CircleShape)
-
-                    if ((userId != null) && (baseUrl != null)) {
-                        val cleanBaseUrl = baseUrl.removeSuffix("/")
-                        AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data("$cleanBaseUrl/api/users/$userId/profile-image")
-                                .addHeader("x-api-key", SessionManager.getApiKey() ?: "")
-                                .crossfade(true)
-                                .build(),
-                            contentDescription = "Profile Picture",
-                            placeholder = rememberVectorPainter(Icons.Default.AccountCircle),
-                            error = rememberVectorPainter(Icons.Default.AccountCircle),
-                            modifier = profileModifier,
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = "Default Profile",
-                            modifier = profileModifier,
-                            tint = MaterialTheme.colorScheme.outline
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
                 )
-            )
+            } else {
+                // Barre principale avec logo et profil
+                TopAppBar(
+                    title = {
+                        Image(
+                            painter = painterResource(id = R.drawable.logo_immichswipe_couleurs),
+                            contentDescription = "Logo Immich Swipe",
+                            modifier = Modifier
+                                .height(35.dp)
+                                .padding(vertical = 4.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                    },
+                    actions = {
+                        // Indicateur de connexion discret
+                        val isConnected = uiState.user != null
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(end = 12.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isConnected) Color.Green else Color.Red)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = if (isConnected) "Connected" else "Disconnected",
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                        }
+
+                        val baseUrl = SessionManager.getBaseUrl()
+                        val userId = uiState.user?.id
+                        
+                        val profileModifier = Modifier
+                            .padding(end = 16.dp)
+                            .size(36.dp)
+                            .border(1.dp, Color(0xFF9C27B0), CircleShape)
+                            .padding(2.dp)
+                            .clip(CircleShape)
+                            .clickable { viewModel.toggleProfilePopup(true) }
+
+                        if ((userId != null) && (baseUrl != null)) {
+                            val cleanBaseUrl = baseUrl.removeSuffix("/")
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data("$cleanBaseUrl/api/users/$userId/profile-image")
+                                    .addHeader("x-api-key", SessionManager.getApiKey() ?: "")
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = "Profile Picture",
+                                placeholder = rememberVectorPainter(Icons.Default.AccountCircle),
+                                error = rememberVectorPainter(Icons.Default.AccountCircle),
+                                modifier = profileModifier,
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.AccountCircle,
+                                contentDescription = "Default Profile",
+                                modifier = profileModifier,
+                                tint = MaterialTheme.colorScheme.outline
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                )
+            }
         },
         bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = uiState.currentTab == HomeTab.HOME,
-                    onClick = { viewModel.onTabSelected(HomeTab.HOME) },
-                    icon = { Icon(Icons.Default.Home, contentDescription = null) },
-                    label = { Text("Home") }
-                )
-                NavigationBarItem(
-                    selected = uiState.currentTab == HomeTab.SWIPE,
-                    onClick = { viewModel.onTabSelected(HomeTab.SWIPE) },
-                    icon = { Icon(Icons.Default.Swipe, contentDescription = null) },
-                    label = { Text("Swipe") }
-                )
-                NavigationBarItem(
-                    selected = uiState.currentTab == HomeTab.SETTINGS,
-                    onClick = { viewModel.onTabSelected(HomeTab.SETTINGS) },
-                    icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                    label = { Text("Settings") }
-                )
+            // On n'affiche la barre du bas QUE si on n'est pas dans les paramètres
+            if (!isSettings) {
+                NavigationBar {
+                    NavigationBarItem(
+                        selected = uiState.currentTab == HomeTab.HOME,
+                        onClick = { viewModel.onTabSelected(HomeTab.HOME) },
+                        icon = { Icon(Icons.Default.Home, contentDescription = null) },
+                        label = { Text("Home") }
+                    )
+                    NavigationBarItem(
+                        selected = uiState.currentTab == HomeTab.SWIPE,
+                        onClick = { viewModel.onTabSelected(HomeTab.SWIPE) },
+                        icon = { Icon(Icons.Default.Swipe, contentDescription = null) },
+                        label = { Text("Swipe") }
+                    )
+                }
             }
         }
     ) { innerPadding ->
@@ -179,15 +214,197 @@ fun HomeScreen(
                     }
                 }
                 HomeTab.SETTINGS -> {
-                    SettingsView(
-                        userName = uiState.user?.name ?: "Utilisateur",
-                        currentBehavior = uiState.playbackBehavior,
-                        onBehaviorChanged = { viewModel.setPlaybackBehavior(it) },
-                        onLogout = { viewModel.logout() }
+                    val settingsViewModel: SettingsViewModel = viewModel(
+                        factory = SettingsViewModelFactory(viewModel.getSessionRepository())
+                    )
+                    SettingsScreen(
+                        viewModel = settingsViewModel
                     )
                 }
             }
         }
+    }
+
+    // Affichage de la fenêtre popup de profil
+    if (uiState.showProfilePopup) {
+        ProfilePopup(
+            user = uiState.user,
+            onClose = { viewModel.toggleProfilePopup(false) },
+            onSettingsClick = { viewModel.onTabSelected(HomeTab.SETTINGS) },
+            onLogout = { viewModel.logout() }
+        )
+    }
+}
+
+@Composable
+fun ProfilePopup(
+    user: com.example.immichswipe.domain.model.User?,
+    onClose: () -> Unit,
+    onSettingsClick: () -> Unit,
+    onLogout: () -> Unit
+) {
+    val context = LocalContext.current
+    val baseUrl = SessionManager.getBaseUrl()?.removeSuffix("/")
+    val apiKey = SessionManager.getApiKey() ?: ""
+
+    Dialog(
+        onDismissRequest = onClose,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .wrapContentHeight()
+                .padding(16.dp),
+            shape = RoundedCornerShape(24.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Header avec logo et bouton fermer
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onClose) {
+                        Icon(Icons.Default.Close, contentDescription = "Fermer")
+                    }
+                    Image(
+                        painter = painterResource(id = R.drawable.logo_immichswipe_couleurs),
+                        contentDescription = null,
+                        modifier = Modifier.height(24.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                    Spacer(Modifier.width(48.dp)) // Équilibre le bouton X
+                }
+
+                Spacer(Modifier.height(24.dp))
+
+                // Photo de profil grande
+                val profileModifier = Modifier
+                    .size(100.dp)
+                    .border(3.dp, Color(0xFF9C27B0), CircleShape)
+                    .padding(4.dp)
+                    .clip(CircleShape)
+
+                if (user != null && baseUrl != null) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data("$baseUrl/api/users/${user.id}/profile-image")
+                            .addHeader("x-api-key", apiKey)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "Profile Picture",
+                        placeholder = rememberVectorPainter(Icons.Default.AccountCircle),
+                        error = rememberVectorPainter(Icons.Default.AccountCircle),
+                        modifier = profileModifier,
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.AccountCircle,
+                        contentDescription = "Default Profile",
+                        modifier = profileModifier,
+                        tint = MaterialTheme.colorScheme.outline
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // Infos utilisateur
+                Text(
+                    text = user?.name ?: "Utilisateur",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = user?.email ?: "",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.outline
+                )
+
+                Spacer(Modifier.height(32.dp))
+
+                // Actions
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                ) {
+                    Column {
+                        PopupActionItem(
+                            icon = Icons.Default.Settings,
+                            text = "Paramètres",
+                            onClick = onSettingsClick
+                        )
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            thickness = 0.5.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant
+                        )
+                        PopupActionItem(
+                            icon = Icons.AutoMirrored.Filled.Logout,
+                            text = "Déconnexion",
+                            onClick = onLogout,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(24.dp))
+
+                // Lien Code Source
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/votre-repo"))
+                            context.startActivity(intent)
+                        }
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_launcher_foreground), // Remplace par une icone github si tu en as
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "Code source",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PopupActionItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    onClick: () -> Unit,
+    color: Color = MaterialTheme.colorScheme.onSurface
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(16.dp))
+        Text(text = text, style = MaterialTheme.typography.bodyLarge, color = color)
     }
 }
 
@@ -296,80 +513,6 @@ fun SwipePlaceholder(selectedAlbum: Album?) {
                 Text("Sélectionnez un album pour commencer !")
             }
         }
-    }
-}
-
-@Composable
-fun SettingsView(
-    userName: String,
-    currentBehavior: PlaybackBehavior,
-    onBehaviorChanged: (PlaybackBehavior) -> Unit,
-    onLogout: () -> Unit
-) {
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Paramètres", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(24.dp))
-        
-        Text("Utilisateur", style = MaterialTheme.typography.titleMedium)
-        Text("Connecté en tant que : $userName", fontSize = 14.sp, color = MaterialTheme.colorScheme.outline)
-        
-        Spacer(Modifier.height(32.dp))
-        
-        Text("Comportement vidéo", style = MaterialTheme.typography.titleMedium)
-        Text("Gérer l'interaction avec les autres sons de l'appareil (musique, etc.) à la lecture d'une vidéo", fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
-        
-        Spacer(Modifier.height(8.dp))
-        
-        Column(Modifier.selectableGroup()) {
-            PlaybackOption(
-                text = "Couper tous les autres sons",
-                selected = currentBehavior == PlaybackBehavior.PAUSE_OTHERS,
-                onClick = { onBehaviorChanged(PlaybackBehavior.PAUSE_OTHERS) }
-            )
-            PlaybackOption(
-                text = "Jouer par dessus les autres sons",
-                selected = currentBehavior == PlaybackBehavior.IGNORE,
-                onClick = { onBehaviorChanged(PlaybackBehavior.IGNORE) }
-            )
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
-        
-        Button(
-            onClick = onLogout,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer)
-        ) {
-            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text("Se déconnecter")
-        }
-    }
-}
-
-@Composable
-fun PlaybackOption(text: String, selected: Boolean, onClick: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .height(48.dp)
-            .selectable(
-                selected = selected,
-                onClick = onClick,
-                role = Role.RadioButton
-            )
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        RadioButton(
-            selected = selected,
-            onClick = null // null car le clic est géré par la Row
-        )
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(start = 16.dp)
-        )
     }
 }
 

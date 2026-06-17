@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import com.example.immichswipe.core.SessionManager
 import com.example.immichswipe.core.PlaybackBehavior
+import com.example.immichswipe.core.AppTheme
 import com.example.immichswipe.data.repository.SessionRepository
 import com.example.immichswipe.domain.model.Album
 
@@ -37,6 +38,13 @@ class HomeViewModel(
         viewModelScope.launch {
             sessionRepository.playbackBehavior.collect { behavior ->
                 _uiState.value = _uiState.value.copy(playbackBehavior = behavior)
+            }
+        }
+
+        // Observe le thème en temps réel
+        viewModelScope.launch {
+            sessionRepository.themeMode.collect { theme ->
+                _uiState.value = _uiState.value.copy(themeMode = theme)
             }
         }
     }
@@ -101,10 +109,35 @@ class HomeViewModel(
     }
 
     /**
+     * Affiche ou cache la fenêtre popup de profil.
+     */
+    fun toggleProfilePopup(visible: Boolean) {
+        _uiState.value = _uiState.value.copy(showProfilePopup = visible)
+    }
+
+    /**
      * Change l'onglet actuel de la barre de navigation.
      */
     fun onTabSelected(tab: HomeTab) {
-        _uiState.value = _uiState.value.copy(currentTab = tab)
+        val current = _uiState.value.currentTab
+        // Si on va vers les réglages, on mémorise d'où l'on vient
+        val nextPrevious = if (tab == HomeTab.SETTINGS) current else _uiState.value.previousTab
+        
+        // Si on sélectionne un onglet, on ferme automatiquement le popup
+        _uiState.value = _uiState.value.copy(
+            currentTab = tab, 
+            previousTab = nextPrevious,
+            showProfilePopup = false
+        )
+    }
+
+    /**
+     * Revient à l'onglet précédent (utile pour quitter les réglages).
+     */
+    fun goBack() {
+        _uiState.value = _uiState.value.copy(
+            currentTab = _uiState.value.previousTab
+        )
     }
 
     /**
@@ -124,6 +157,15 @@ class HomeViewModel(
     fun setPlaybackBehavior(behavior: PlaybackBehavior) {
         viewModelScope.launch {
             sessionRepository.savePlaybackBehavior(behavior)
+        }
+    }
+
+    /**
+     * Change la préférence de thème.
+     */
+    fun setThemeMode(theme: AppTheme) {
+        viewModelScope.launch {
+            sessionRepository.saveThemeMode(theme)
         }
     }
 

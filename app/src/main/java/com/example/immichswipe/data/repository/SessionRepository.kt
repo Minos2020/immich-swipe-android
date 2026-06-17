@@ -1,6 +1,8 @@
 package com.example.immichswipe.data.repository
 
 import android.content.Context
+import com.example.immichswipe.core.AppTheme
+import com.example.immichswipe.core.IconPosition
 import com.example.immichswipe.core.PlaybackBehavior
 import com.example.immichswipe.core.SessionConfig
 import com.example.immichswipe.data.datastore.SessionDataStore
@@ -35,8 +37,39 @@ class SessionRepository(context: Context) {
      * Expose le comportement de lecture actuel.
      * Par défaut: PAUSE_OTHERS.
      */
-    val playbackBehavior: Flow<PlaybackBehavior> = dataStore.getAudioFocusMode().map {
-        it?.let { PlaybackBehavior.valueOf(it) } ?: PlaybackBehavior.PAUSE_OTHERS
+    val playbackBehavior: Flow<PlaybackBehavior> = dataStore.getAudioFocusMode().map { modeString ->
+        if (modeString == null) return@map PlaybackBehavior.PAUSE_OTHERS
+        try {
+            PlaybackBehavior.valueOf(modeString)
+        } catch (e: Exception) {
+            PlaybackBehavior.PAUSE_OTHERS
+        }
+    }
+
+    /**
+     * Expose le thème actuel.
+     */
+    val themeMode: Flow<AppTheme> = dataStore.getThemeMode().map {
+        it?.let { try { AppTheme.valueOf(it) } catch(e: Exception) { AppTheme.SYSTEM } } ?: AppTheme.SYSTEM
+    }
+
+    /**
+     * Expose l'inversion du swipe.
+     */
+    val swipeInverted: Flow<Boolean> = dataStore.isSwipeInverted()
+
+    /**
+     * Expose la position de l'icône plein écran.
+     */
+    val fullscreenButtonPosition: Flow<IconPosition> = dataStore.getFullscreenIconPosition().map {
+        it?.let { try { IconPosition.valueOf(it) } catch(e: Exception) { IconPosition.TOP_RIGHT } } ?: IconPosition.TOP_RIGHT
+    }
+
+    /**
+     * Expose la position de l'icône Immich.
+     */
+    val immichButtonPosition: Flow<IconPosition> = dataStore.getImmichIconPosition().map {
+        it?.let { try { IconPosition.valueOf(it) } catch(e: Exception) { IconPosition.TOP_LEFT } } ?: IconPosition.TOP_LEFT
     }
 
     /**
@@ -52,6 +85,34 @@ class SessionRepository(context: Context) {
      */
     suspend fun savePlaybackBehavior(behavior: PlaybackBehavior) {
         dataStore.saveAudioFocusMode(behavior.name)
+    }
+
+    /**
+     * Sauvegarde le thème.
+     */
+    suspend fun saveThemeMode(theme: AppTheme) {
+        dataStore.saveThemeMode(theme.name)
+    }
+
+    /**
+     * Sauvegarde l'inversion du swipe.
+     */
+    suspend fun saveSwipeInverted(inverted: Boolean) {
+        dataStore.saveSwipeInverted(inverted)
+    }
+
+    /**
+     * Sauvegarde la position de l'icône plein écran.
+     */
+    suspend fun saveFullscreenButtonPosition(pos: IconPosition) {
+        dataStore.saveFullscreenIconPosition(pos.name)
+    }
+
+    /**
+     * Sauvegarde la position de l'icône Immich.
+     */
+    suspend fun saveImmichButtonPosition(pos: IconPosition) {
+        dataStore.saveImmichIconPosition(pos.name)
     }
 
     /**

@@ -3,6 +3,8 @@ package com.example.immichswipe.feature.swipe
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.immichswipe.data.repository.AssetRepository
+import com.example.immichswipe.core.PlaybackBehavior
+import com.example.immichswipe.core.IconPosition
 import com.example.immichswipe.data.repository.SessionRepository
 import com.example.immichswipe.domain.model.Album
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,12 +24,39 @@ class SwipeViewModel(
     init {
         loadAssets()
         observePlaybackBehavior()
+        observeSwipeInversion()
+        observeFullscreenButtonPosition()
+        observeImmichButtonPosition()
     }
 
     private fun observePlaybackBehavior() {
         viewModelScope.launch {
             sessionRepository.playbackBehavior.collect { behavior ->
                 _uiState.value = _uiState.value.copy(playbackBehavior = behavior)
+            }
+        }
+    }
+
+    private fun observeSwipeInversion() {
+        viewModelScope.launch {
+            sessionRepository.swipeInverted.collect { inverted ->
+                _uiState.value = _uiState.value.copy(isSwipeInverted = inverted)
+            }
+        }
+    }
+
+    private fun observeFullscreenButtonPosition() {
+        viewModelScope.launch {
+            sessionRepository.fullscreenButtonPosition.collect { pos ->
+                _uiState.value = _uiState.value.copy(fullscreenButtonPosition = pos)
+            }
+        }
+    }
+
+    private fun observeImmichButtonPosition() {
+        viewModelScope.launch {
+            sessionRepository.immichButtonPosition.collect { pos ->
+                _uiState.value = _uiState.value.copy(immichButtonPosition = pos)
             }
         }
     }

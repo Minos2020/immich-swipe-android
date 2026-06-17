@@ -3,6 +3,7 @@ package com.example.immichswipe.feature.swipe
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.view.LayoutInflater
 import androidx.annotation.OptIn
@@ -20,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Forward
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -34,6 +36,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -58,6 +61,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.immichswipe.core.SessionManager
 import com.example.immichswipe.core.PlaybackBehavior
+import com.example.immichswipe.core.IconPosition
 import com.example.immichswipe.data.repository.AssetRepository
 import com.example.immichswipe.data.repository.SessionRepository
 import com.example.immichswipe.domain.model.Album
@@ -100,6 +104,9 @@ fun SwipeScreen(
         modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // 0. En-tête avec nom de l'album et statistiques
+        SwipeHeader(uiState = uiState)
+
         // 1. Timeline (Barre du haut avec vignettes)
         AssetTimeline(
             assets = uiState.assets,
@@ -137,7 +144,10 @@ fun SwipeScreen(
                             asset = asset,
                             onSwipe = { viewModel.onSwipe(it) },
                             isNext = isNextCard,
-                            playbackBehavior = uiState.playbackBehavior
+                            playbackBehavior = uiState.playbackBehavior,
+                            isSwipeInverted = uiState.isSwipeInverted,
+                            fullscreenButtonPosition = uiState.fullscreenButtonPosition,
+                            immichButtonPosition = uiState.immichButtonPosition
                         )
                     }
                 }
@@ -190,6 +200,100 @@ fun SwipeScreen(
                 Icon(Icons.Default.Check, contentDescription = "Garder")
             }
         }
+    }
+}
+
+@Composable
+fun SwipeHeader(uiState: SwipeUiState) {
+    // Animation fluide de la progression
+    val animatedProgress by animateFloatAsState(
+        targetValue = uiState.progress,
+        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+        label = "ProgressBarAnimation"
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Barre de progression avec nom de l'album
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(36.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            // Remplissage de la progression (avec valeur animée)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(animatedProgress)
+                    .fillMaxHeight()
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.secondary
+                            )
+                        )
+                    )
+            )
+            
+            // Texte de l'album (en blanc ou noir selon le contraste)
+            Row(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = uiState.albumName,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    maxLines = 1
+                )
+                Text(
+                    text = "${(uiState.progress * 100).toInt()}%",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White.copy(alpha = 0.9f)
+                )
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        // Rangée de statistiques
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            StatBadge(label = "Gardés", count = uiState.keptCount, color = MaterialGreen)
+            StatBadge(label = "Suppr.", count = uiState.deletedCount, color = MaterialRed)
+            StatBadge(label = "Passés", count = uiState.skippedCount, color = Color.Gray)
+            StatBadge(label = "Restant", count = uiState.remainingCount, color = MaterialTheme.colorScheme.outline)
+        }
+    }
+}
+
+@Composable
+fun StatBadge(label: String, count: Int, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(color)
+        )
+        Spacer(Modifier.width(4.dp))
+        Text(
+            text = "$count $label",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+        )
     }
 }
 
@@ -296,7 +400,10 @@ fun SwipeCard(
     asset: Asset,
     onSwipe: (SwipeDecision) -> Unit,
     isNext: Boolean,
-    playbackBehavior: PlaybackBehavior
+    playbackBehavior: PlaybackBehavior,
+    isSwipeInverted: Boolean,
+    fullscreenButtonPosition: IconPosition,
+    immichButtonPosition: IconPosition
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
@@ -399,10 +506,10 @@ fun SwipeCard(
 
                                 if (currentX > 250) {
                                     offsetX.animateTo(1500f, tween(150))
-                                    onSwipe(SwipeDecision.KEEP)
+                                    onSwipe(if (isSwipeInverted) SwipeDecision.DELETE else SwipeDecision.KEEP)
                                 } else if (currentX < -250) {
                                     offsetX.animateTo(-1500f, tween(150))
-                                    onSwipe(SwipeDecision.DELETE)
+                                    onSwipe(if (isSwipeInverted) SwipeDecision.KEEP else SwipeDecision.DELETE)
                                 } else {
                                     launch { offsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioLowBouncy)) }
 
@@ -486,14 +593,91 @@ fun SwipeCard(
 
                 // Bouton Plein Écran
                 if (!isNext) {
-                    IconButton(
-                        onClick = { isFullscreenOpen = true },
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(8.dp)
-                            .background(Color.Black.copy(alpha = 0.3f), CircleShape)
-                    ) {
-                        Icon(Icons.Default.Fullscreen, null, tint = Color.White)
+                    // Zone pour les boutons d'action (Plein écran et Immich)
+                    // Si les deux sont au même endroit, on les met dans une Column
+                    val samePosition = fullscreenButtonPosition == immichButtonPosition
+                    
+                    if (samePosition) {
+                        val stackAlignment = when (fullscreenButtonPosition) {
+                            IconPosition.TOP_LEFT -> Alignment.TopStart
+                            IconPosition.TOP_RIGHT -> Alignment.TopEnd
+                            IconPosition.BOTTOM_LEFT -> Alignment.BottomStart
+                            IconPosition.BOTTOM_RIGHT -> Alignment.BottomEnd
+                        }
+                        
+                        Column(
+                            modifier = Modifier
+                                .align(stackAlignment)
+                                .padding(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalAlignment = when (fullscreenButtonPosition) {
+                                IconPosition.TOP_LEFT, IconPosition.BOTTOM_LEFT -> Alignment.Start
+                                else -> Alignment.End
+                            }
+                        ) {
+                            IconButton(
+                                onClick = { isFullscreenOpen = true },
+                                modifier = Modifier.background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                            ) {
+                                Icon(Icons.Default.Fullscreen, null, tint = Color.White)
+                            }
+                            
+                            IconButton(
+                                onClick = {
+                                    val intent = Intent(Intent.ACTION_VIEW, "$baseUrl/photos/${asset.id}".toUri())
+                                    context.startActivity(intent)
+                                },
+                                modifier = Modifier.background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                                    contentDescription = "Ouvrir dans Immich",
+                                    tint = Color.White
+                                )
+                            }
+                        }
+                    } else {
+                        // Positions différentes, comportement standard
+                        val fullscreenAlignment = when (fullscreenButtonPosition) {
+                            IconPosition.TOP_LEFT -> Alignment.TopStart
+                            IconPosition.TOP_RIGHT -> Alignment.TopEnd
+                            IconPosition.BOTTOM_LEFT -> Alignment.BottomStart
+                            IconPosition.BOTTOM_RIGHT -> Alignment.BottomEnd
+                        }
+                        
+                        IconButton(
+                            onClick = { isFullscreenOpen = true },
+                            modifier = Modifier
+                                .align(fullscreenAlignment)
+                                .padding(8.dp)
+                                .background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                        ) {
+                            Icon(Icons.Default.Fullscreen, null, tint = Color.White)
+                        }
+
+                        val immichButtonAlignment = when (immichButtonPosition) {
+                            IconPosition.TOP_LEFT -> Alignment.TopStart
+                            IconPosition.TOP_RIGHT -> Alignment.TopEnd
+                            IconPosition.BOTTOM_LEFT -> Alignment.BottomStart
+                            IconPosition.BOTTOM_RIGHT -> Alignment.BottomEnd
+                        }
+
+                        IconButton(
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_VIEW, "$baseUrl/photos/${asset.id}".toUri())
+                                context.startActivity(intent)
+                            },
+                            modifier = Modifier
+                                .align(immichButtonAlignment)
+                                .padding(8.dp)
+                                .background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                                contentDescription = "Ouvrir dans Immich",
+                                tint = Color.White
+                            )
+                        }
                     }
                 }
 
@@ -523,10 +707,20 @@ fun SwipeCard(
                     val keepAlpha = (offsetX.value / 200f).coerceIn(0f, 1f)
                     val deleteAlpha = (-offsetX.value / 200f).coerceIn(0f, 1f)
 
-                    if (keepAlpha > 0f) {
-                        IndicatorBadge("KEEP", MaterialGreen, Alignment.TopStart, keepAlpha * 0.9f)
-                    } else if (deleteAlpha > 0f) {
-                        IndicatorBadge("DELETE", MaterialRed, Alignment.TopEnd, deleteAlpha * 0.9f)
+                    if (isSwipeInverted) {
+                        // Inversion des badges
+                        if (keepAlpha > 0f) {
+                            IndicatorBadge("DELETE", MaterialRed, Alignment.TopStart, keepAlpha * 0.9f)
+                        } else if (deleteAlpha > 0f) {
+                            IndicatorBadge("KEEP", MaterialGreen, Alignment.TopEnd, deleteAlpha * 0.9f)
+                        }
+                    } else {
+                        // Comportement normal
+                        if (keepAlpha > 0f) {
+                            IndicatorBadge("KEEP", MaterialGreen, Alignment.TopStart, keepAlpha * 0.9f)
+                        } else if (deleteAlpha > 0f) {
+                            IndicatorBadge("DELETE", MaterialRed, Alignment.TopEnd, deleteAlpha * 0.9f)
+                        }
                     }
                 }
             }

@@ -16,6 +16,10 @@ class SessionDataStore(private val context: Context) {
         private val KEY_BASE_URL = stringPreferencesKey("base_url")
         private val KEY_API_KEY = stringPreferencesKey("api_key")
         private val KEY_AUDIO_FOCUS = stringPreferencesKey("audio_focus")
+        private val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
+        private val KEY_SWIPE_INVERTED = androidx.datastore.preferences.core.booleanPreferencesKey("swipe_inverted")
+        private val KEY_FULLSCREEN_ICON_POS = stringPreferencesKey("fullscreen_icon_pos")
+        private val KEY_IMMICH_ICON_POS = stringPreferencesKey("immich_icon_pos")
     }
 
     suspend fun saveSession(baseUrl: String, apiKey: String) {
@@ -41,6 +45,30 @@ class SessionDataStore(private val context: Context) {
         context.dataStore.edit { prefs ->
             prefs[KEY_AUDIO_FOCUS] = mode
         }
+    }
+
+    fun getThemeMode(): Flow<String?> = context.dataStore.data.map { it[KEY_THEME_MODE] }
+    
+    suspend fun saveThemeMode(mode: String) {
+        context.dataStore.edit { it[KEY_THEME_MODE] = mode }
+    }
+
+    fun isSwipeInverted(): Flow<Boolean> = context.dataStore.data.map { it[KEY_SWIPE_INVERTED] ?: false }
+    
+    suspend fun saveSwipeInverted(inverted: Boolean) {
+        context.dataStore.edit { it[KEY_SWIPE_INVERTED] = inverted }
+    }
+
+    fun getFullscreenIconPosition(): Flow<String?> = context.dataStore.data.map { it[KEY_FULLSCREEN_ICON_POS] }
+    
+    suspend fun saveFullscreenIconPosition(pos: String) {
+        context.dataStore.edit { it[KEY_FULLSCREEN_ICON_POS] = pos }
+    }
+
+    fun getImmichIconPosition(): Flow<String?> = context.dataStore.data.map { it[KEY_IMMICH_ICON_POS] }
+
+    suspend fun saveImmichIconPosition(pos: String) {
+        context.dataStore.edit { it[KEY_IMMICH_ICON_POS] = pos }
     }
 
     suspend fun clearSession() {
