@@ -179,4 +179,26 @@ class SwipeViewModel(
             loadAssetDetail(_uiState.value.assets[index].id, index)
         }
     }
+
+    /**
+     * Calcule l'index du prochain asset non traité à afficher en arrière-plan.
+     */
+    fun getNextUnprocessedIndex(): Int {
+        val state = _uiState.value
+        val assets = state.assets
+        val decisions = state.decisions
+        val current = state.currentIndex
+
+        // 1. Chercher après l'index actuel
+        for (i in (current + 1) until assets.size) {
+            if (!decisions.containsKey(assets[i].id)) return i
+        }
+        
+        // 2. Sinon, chercher avant (boucle)
+        for (i in 0 until current) {
+            if (!decisions.containsKey(assets[i].id)) return i
+        }
+        
+        return -1
+    }
 }

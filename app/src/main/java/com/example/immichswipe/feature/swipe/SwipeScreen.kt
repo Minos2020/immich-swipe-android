@@ -132,10 +132,13 @@ fun SwipeScreen(
                 val currentIndex = uiState.currentIndex
                 val assets = uiState.assets
 
-                // On affiche les 2 assets (courant et suivant) dans une seule boucle
-                // On inverse l'ordre (reversed) pour que l'asset courant (index plus petit)
-                // soit dessiné en dernier, donc au dessus dans la Box.
-                val visibleIndices = (currentIndex until (currentIndex + 2).coerceAtMost(assets.size)).toList().reversed()
+                // On affiche les 2 assets (courant et prochain non traité)
+                // On inverse l'ordre (reversed) pour que l'asset courant soit au dessus.
+                val nextUnprocessedIndex = viewModel.getNextUnprocessedIndex()
+                val visibleIndices = listOfNotNull(
+                    currentIndex,
+                    nextUnprocessedIndex.takeIf { it != -1 }
+                ).distinct().reversed()
 
                 visibleIndices.forEach { index ->
                     val asset = assets[index]
