@@ -3,6 +3,7 @@ package com.example.immichswipe.feature.swipe
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.immichswipe.data.repository.AssetRepository
+import com.example.immichswipe.data.repository.SessionRepository
 import com.example.immichswipe.domain.model.Album
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,6 +12,7 @@ import kotlinx.coroutines.launch
 
 class SwipeViewModel(
     private val assetRepository: AssetRepository,
+    private val sessionRepository: SessionRepository,
     private val album: Album
 ) : ViewModel() {
 
@@ -19,6 +21,15 @@ class SwipeViewModel(
 
     init {
         loadAssets()
+        observePlaybackBehavior()
+    }
+
+    private fun observePlaybackBehavior() {
+        viewModelScope.launch {
+            sessionRepository.playbackBehavior.collect { behavior ->
+                _uiState.value = _uiState.value.copy(playbackBehavior = behavior)
+            }
+        }
     }
 
     private fun loadAssets() {

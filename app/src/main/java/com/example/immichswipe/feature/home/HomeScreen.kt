@@ -28,10 +28,14 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.immichswipe.R
 import com.example.immichswipe.core.SessionManager
+import com.example.immichswipe.core.PlaybackBehavior
 import com.example.immichswipe.data.repository.AssetRepository
 import com.example.immichswipe.domain.model.Album
 import com.example.immichswipe.feature.swipe.SwipeScreen
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.Role
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -167,7 +171,8 @@ fun HomeScreen(
                     if (uiState.selectedAlbum != null) {
                         SwipeScreen(
                             album = uiState.selectedAlbum!!,
-                            assetRepository = assetRepository
+                            assetRepository = assetRepository,
+                            sessionRepository = viewModel.getSessionRepository()
                         )
                     } else {
                         SwipePlaceholder(selectedAlbum = null)
@@ -176,6 +181,8 @@ fun HomeScreen(
                 HomeTab.SETTINGS -> {
                     SettingsView(
                         userName = uiState.user?.name ?: "Utilisateur",
+                        currentBehavior = uiState.playbackBehavior,
+                        onBehaviorChanged = { viewModel.setPlaybackBehavior(it) },
                         onLogout = { viewModel.logout() }
                     )
                 }
@@ -293,12 +300,41 @@ fun SwipePlaceholder(selectedAlbum: Album?) {
 }
 
 @Composable
-fun SettingsView(userName: String, onLogout: () -> Unit) {
+fun SettingsView(
+    userName: String,
+    currentBehavior: PlaybackBehavior,
+    onBehaviorChanged: (PlaybackBehavior) -> Unit,
+    onLogout: () -> Unit
+) {
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text("Paramètres", fontSize = 22.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(24.dp))
-        Text("Connecté en tant que : $userName", fontSize = 14.sp)
+        
+        Text("Utilisateur", style = MaterialTheme.typography.titleMedium)
+        Text("Connecté en tant que : $userName", fontSize = 14.sp, color = MaterialTheme.colorScheme.outline)
+        
         Spacer(Modifier.height(32.dp))
+        
+        Text("Comportement vidéo", style = MaterialTheme.typography.titleMedium)
+        Text("Gérer l'interaction avec les autres sons de l'appareil (musique, etc.) à la lecture d'une vidéo", fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
+        
+        Spacer(Modifier.height(8.dp))
+        
+        Column(Modifier.selectableGroup()) {
+            PlaybackOption(
+                text = "Couper tous les autres sons",
+                selected = currentBehavior == PlaybackBehavior.PAUSE_OTHERS,
+                onClick = { onBehaviorChanged(PlaybackBehavior.PAUSE_OTHERS) }
+            )
+            PlaybackOption(
+                text = "Jouer par dessus les autres sons",
+                selected = currentBehavior == PlaybackBehavior.IGNORE,
+                onClick = { onBehaviorChanged(PlaybackBehavior.IGNORE) }
+            )
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+        
         Button(
             onClick = onLogout,
             modifier = Modifier.fillMaxWidth(),
@@ -308,6 +344,32 @@ fun SettingsView(userName: String, onLogout: () -> Unit) {
             Spacer(Modifier.width(8.dp))
             Text("Se déconnecter")
         }
+    }
+}
+
+@Composable
+fun PlaybackOption(text: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .selectable(
+                selected = selected,
+                onClick = onClick,
+                role = Role.RadioButton
+            )
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = null // null car le clic est géré par la Row
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(start = 16.dp)
+        )
     }
 }
 

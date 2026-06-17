@@ -1,10 +1,12 @@
 package com.example.immichswipe.data.repository
 
 import android.content.Context
+import com.example.immichswipe.core.PlaybackBehavior
 import com.example.immichswipe.core.SessionConfig
 import com.example.immichswipe.data.datastore.SessionDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 
 /**
  * Repository gérant la persistence de la session utilisateur.
@@ -30,11 +32,26 @@ class SessionRepository(context: Context) {
     }
 
     /**
+     * Expose le comportement de lecture actuel.
+     * Par défaut: PAUSE_OTHERS.
+     */
+    val playbackBehavior: Flow<PlaybackBehavior> = dataStore.getAudioFocusMode().map {
+        it?.let { PlaybackBehavior.valueOf(it) } ?: PlaybackBehavior.PAUSE_OTHERS
+    }
+
+    /**
      * Sauvegarde une nouvelle session. 
      * Grâce au Flow ci-dessus, tous les observateurs seront notifiés automatiquement.
      */
     suspend fun saveSession(baseUrl: String, token: String) {
         dataStore.saveSession(baseUrl, token)
+    }
+
+    /**
+     * Sauvegarde la préférence de lecture.
+     */
+    suspend fun savePlaybackBehavior(behavior: PlaybackBehavior) {
+        dataStore.saveAudioFocusMode(behavior.name)
     }
 
     /**

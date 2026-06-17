@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import com.example.immichswipe.core.SessionManager
+import com.example.immichswipe.core.PlaybackBehavior
 import com.example.immichswipe.data.repository.SessionRepository
 import com.example.immichswipe.domain.model.Album
 
@@ -30,6 +31,15 @@ class HomeViewModel(
     
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+
+    init {
+        // Observe le comportement de lecture en temps réel
+        viewModelScope.launch {
+            sessionRepository.playbackBehavior.collect { behavior ->
+                _uiState.value = _uiState.value.copy(playbackBehavior = behavior)
+            }
+        }
+    }
 
     /**
      * Charge toutes les données nécessaires à l'écran d'accueil.
@@ -107,6 +117,17 @@ class HomeViewModel(
             currentTab = HomeTab.SWIPE
         )
     }
+
+    /**
+     * Change la préférence de gestion du son.
+     */
+    fun setPlaybackBehavior(behavior: PlaybackBehavior) {
+        viewModelScope.launch {
+            sessionRepository.savePlaybackBehavior(behavior)
+        }
+    }
+
+    fun getSessionRepository() = sessionRepository
 
     /**
      * Déconnecte l'utilisateur en vidant le stockage local.

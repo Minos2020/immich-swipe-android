@@ -34,6 +34,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -44,6 +47,8 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
@@ -52,7 +57,9 @@ import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.immichswipe.core.SessionManager
+import com.example.immichswipe.core.PlaybackBehavior
 import com.example.immichswipe.data.repository.AssetRepository
+import com.example.immichswipe.data.repository.SessionRepository
 import com.example.immichswipe.domain.model.Album
 import com.example.immichswipe.domain.model.Asset
 import com.example.immichswipe.R
@@ -80,11 +87,12 @@ fun Context.findActivity(): Activity? = when (this) {
 fun SwipeScreen(
     album: Album,
     assetRepository: AssetRepository,
+    sessionRepository: SessionRepository,
     modifier: Modifier = Modifier
 ) {
     val viewModel: SwipeViewModel = viewModel(
         key = album.id,
-        factory = SwipeViewModelFactory(assetRepository, album)
+        factory = SwipeViewModelFactory(assetRepository, sessionRepository, album)
     )
     val uiState by viewModel.uiState.collectAsState()
 
@@ -128,7 +136,8 @@ fun SwipeScreen(
                         SwipeCard(
                             asset = asset,
                             onSwipe = { viewModel.onSwipe(it) },
-                            isNext = isNextCard
+                            isNext = isNextCard,
+                            playbackBehavior = uiState.playbackBehavior
                         )
                     }
                 }
@@ -286,12 +295,14 @@ fun AssetTimeline(
 fun SwipeCard(
     asset: Asset,
     onSwipe: (SwipeDecision) -> Unit,
-    isNext: Boolean
+    isNext: Boolean,
+    playbackBehavior: PlaybackBehavior
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
     val baseUrl = SessionManager.getBaseUrl()?.removeSuffix("/")
     val apiKey = SessionManager.getApiKey() ?: ""
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     val scope = rememberCoroutineScope()
     val offsetX = remember { Animatable(0f) }
@@ -308,6 +319,17 @@ fun SwipeCard(
     val exoPlayer = remember(asset.id, isNext) {
         if (asset.type == "VIDEO" && !isNext) {
             ExoPlayer.Builder(context).build().apply {
+                // Configuration précise de l'Audio Focus
+                if (playbackBehavior != PlaybackBehavior.IGNORE) {
+                    val audioAttributes = AudioAttributes.Builder()
+                        .setUsage(C.USAGE_MEDIA)
+                        .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                        .build()
+                    
+                    // On active la gestion automatique du focus (coupe les autres sons)
+                    setAudioAttributes(audioAttributes, true)
+                }
+
                 repeatMode = Player.REPEAT_MODE_ONE
                 val videoUrl = "$baseUrl/api/assets/${asset.id}/video/playback"
                 val dataSourceFactory = DefaultHttpDataSource.Factory()
@@ -321,8 +343,26 @@ fun SwipeCard(
         } else null
     }
 
-    DisposableEffect(exoPlayer) {
+    // Gestion du cycle de vie pour mettre en pause la vidéo quand on quitte l'app
+    DisposableEffect(exoPlayer, lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> {
+                    exoPlayer?.playWhenReady = false
+                }
+                Lifecycle.Event.ON_RESUME -> {
+                    // On ne relance que si on n'est pas en plein écran (pour éviter les conflits)
+                    if (!isFullscreenOpen) {
+                        exoPlayer?.playWhenReady = true
+                    }
+                }
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+
         onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
             exoPlayer?.stop()
             exoPlayer?.release()
         }

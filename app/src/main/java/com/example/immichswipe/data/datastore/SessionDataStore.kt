@@ -15,6 +15,7 @@ class SessionDataStore(private val context: Context) {
     companion object {
         private val KEY_BASE_URL = stringPreferencesKey("base_url")
         private val KEY_API_KEY = stringPreferencesKey("api_key")
+        private val KEY_AUDIO_FOCUS = stringPreferencesKey("audio_focus")
     }
 
     suspend fun saveSession(baseUrl: String, apiKey: String) {
@@ -30,6 +31,16 @@ class SessionDataStore(private val context: Context) {
 
     fun getApiKey(): Flow<String?> {
         return context.dataStore.data.map { it[KEY_API_KEY] }
+    }
+
+    fun getAudioFocusMode(): Flow<String?> {
+        return context.dataStore.data.map { it[KEY_AUDIO_FOCUS] }
+    }
+
+    suspend fun saveAudioFocusMode(mode: String) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_AUDIO_FOCUS] = mode
+        }
     }
 
     suspend fun clearSession() {
