@@ -45,6 +45,19 @@ interface SwipeDecisionDao {
      */
     @Query("DELETE FROM swipe_decisions WHERE assetId = :assetId AND albumId = :albumId")
     suspend fun deleteDecision(assetId: String, albumId: String)
+
+    /**
+     * Supprime plusieurs décisions d'un coup pour un album donné.
+     */
+    @Query("DELETE FROM swipe_decisions WHERE assetId IN (:assetIds) AND albumId = :albumId")
+    suspend fun deleteDecisions(assetIds: List<String>, albumId: String)
+
+    /**
+     * Supprime toutes les décisions liées à une liste d'assets spécifique, peu importe l'album.
+     * Utile quand les assets sont définitivement supprimés du serveur Immich.
+     */
+    @Query("DELETE FROM swipe_decisions WHERE assetId IN (:assetIds)")
+    suspend fun deleteDecisionsForAllAlbums(assetIds: List<String>)
     
     /**
      * Compte le nombre de décisions prises pour un album spécifique.

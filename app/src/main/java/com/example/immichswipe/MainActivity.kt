@@ -93,12 +93,17 @@ class MainActivity : ComponentActivity() {
                             targetState.isLoggedIn -> {
                                 val api = SessionManager.api
                                 if (api != null) {
-                                    val albumRepository = AlbumRepository(api)
-                                    val assetRepository = AssetRepository(api)
+                                    val albumRepository = remember(api) { AlbumRepository(api) }
+                                    val assetRepository = remember(api) { AssetRepository(api) }
 
                                     HomeScreen(
                                         viewModel = viewModel(
-                                            factory = HomeViewModelFactory(sessionRepository, albumRepository, swipeDecisionRepository)
+                                            factory = HomeViewModelFactory(
+                                                sessionRepository, 
+                                                albumRepository, 
+                                                swipeDecisionRepository,
+                                                assetRepository
+                                            )
                                         ),
                                         assetRepository = assetRepository,
                                         swipeDecisionRepository = swipeDecisionRepository

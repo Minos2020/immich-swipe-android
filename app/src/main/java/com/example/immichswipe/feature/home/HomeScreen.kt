@@ -495,7 +495,7 @@ fun AlbumList(
             statusOrder.forEach { status ->
                 val albumsInStatus = groupedAlbums[status]
                 if (!albumsInStatus.isNullOrEmpty()) {
-                    item {
+                    item(key = "header_${status.name}") {
                         Text(
                             text = status.label,
                             fontSize = 18.sp,
@@ -505,7 +505,7 @@ fun AlbumList(
                         )
                     }
 
-                    items(albumsInStatus) { album ->
+                    items(albumsInStatus, key = { it.id }) { album ->
                         AlbumItem(
                             album = album,
                             treatedCount = treatedCounts[album.id] ?: 0,
@@ -555,7 +555,7 @@ fun AlbumGrid(
                         )
                     }
 
-                    gridItems(albumsInStatus) { album ->
+                    gridItems(albumsInStatus, key = { it.id }) { album ->
                         AlbumGridItem(
                             album = album,
                             treatedCount = treatedCounts[album.id] ?: 0,

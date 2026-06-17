@@ -10,9 +10,9 @@ class AlbumRepository(
     private val api: ImmichApi
 ) {
     /**
-     * Récupère la liste de tous les albums.
+     * Rafraîchit la liste des albums depuis le serveur.
      */
-    suspend fun getAlbums(): List<Album> {
+    suspend fun refreshAlbums(): List<Album> {
         return api.getAlbums()
     }
 }

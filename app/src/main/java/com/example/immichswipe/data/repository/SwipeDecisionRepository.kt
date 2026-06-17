@@ -51,7 +51,15 @@ class SwipeDecisionRepository(
      * Supprime plusieurs décisions d'un coup pour un album donné.
      */
     suspend fun removeDecisions(assetIds: List<String>, albumId: String) {
-        assetIds.forEach { swipeDecisionDao.deleteDecision(it, albumId) }
+        swipeDecisionDao.deleteDecisions(assetIds, albumId)
+    }
+
+    /**
+     * Supprime toutes les décisions pour une liste d'assets, sur TOUS les albums.
+     * À utiliser après une synchronisation réussie (suppression réelle sur Immich).
+     */
+    suspend fun removeDecisionsFromAllAlbums(assetIds: List<String>) {
+        swipeDecisionDao.deleteDecisionsForAllAlbums(assetIds)
     }
 
     /**

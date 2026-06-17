@@ -79,6 +79,20 @@ class SwipeViewModel(
                 // On transforme la liste de SwipeDecisionEntity en Map<String, SwipeDecision>
                 val decisionMap = localDecisions.associate { entity ->
                     entity.assetId to SwipeDecision.valueOf(entity.decision)
+                }.toMutableMap()
+
+                // NETTOYAGE : Si on a des décisions locales pour des assets qui n'existent plus
+                // dans cet album sur le serveur, on les supprime.
+                // Cela évite les compteurs incohérents (ex: 7/6 triés).
+                val serverAssetIds = assets.map { it.id }.toSet()
+                val invalidAssetIds = localDecisions.map { it.assetId }.filter { !serverAssetIds.contains(it) }
+                
+                if (invalidAssetIds.isNotEmpty()) {
+                    // Pour le nettoyage au chargement, on est prudent : on ne nettoie que pour CET album
+                    // car l'absence dans CET album ne veut pas dire que l'asset est mort sur Immich
+                    // (il a pu être simplement retiré de l'album).
+                    swipeDecisionRepository.removeDecisions(invalidAssetIds, album.id)
+                    invalidAssetIds.forEach { decisionMap.remove(it) }
                 }
 
                 // On cherche le premier index non traité
@@ -300,11 +314,12 @@ class SwipeViewModel(
                 val failedDeletions = toDelete.filter { freshIds.contains(it) }
                 
                 // 4. Nettoyage de la base locale :
-                // On supprime de Room uniquement les décisions pour les assets qui ne sont PLUS sur le serveur
-                // (car s'ils sont encore là, on veut garder notre décision pour réessayer ou pour ne pas les re-swiper)
+                // On supprime de Room les décisions pour les assets qui ne sont PLUS sur le serveur.
+                // IMPORTANT : Si une photo a été supprimée, on la retire de TOUS les albums pour éviter
+                // les incohérences de compteurs (ex: 7/6 assets triés).
                 val disappearedIds = currentState.decisions.keys.filter { !freshIds.contains(it) }
                 if (disappearedIds.isNotEmpty()) {
-                    swipeDecisionRepository.removeDecisions(disappearedIds, album.id)
+                    swipeDecisionRepository.removeDecisionsFromAllAlbums(disappearedIds)
                 }
 
                 if (failedDeletions.isNotEmpty()) {
