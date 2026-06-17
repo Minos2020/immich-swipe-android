@@ -109,7 +109,33 @@ class SwipeViewModel(
         val newHistory = currentState.history.toMutableList()
         newHistory.add(currentAsset.id)
 
-        val nextIndex = currentState.currentIndex + 1
+        // Trouver le prochain asset non traité
+        val assets = currentState.assets
+        var nextIndex = -1
+        
+        // 1. Chercher d'abord après l'index actuel
+        for (i in (currentState.currentIndex + 1) until assets.size) {
+            if (!newDecisions.containsKey(assets[i].id)) {
+                nextIndex = i
+                break
+            }
+        }
+        
+        // 2. Si non trouvé, repartir du début
+        if (nextIndex == -1) {
+            for (i in 0 until currentState.currentIndex) {
+                if (!newDecisions.containsKey(assets[i].id)) {
+                    nextIndex = i
+                    break
+                }
+            }
+        }
+        
+        // 3. Si toujours rien, on a vraiment fini l'album
+        if (nextIndex == -1) {
+            nextIndex = assets.size // Marqueur de fin
+        }
+
         _uiState.value = currentState.copy(
             currentIndex = nextIndex,
             decisions = newDecisions,
@@ -117,8 +143,8 @@ class SwipeViewModel(
         )
 
         // On charge les détails du prochain asset pour anticiper
-        if (nextIndex < currentState.assets.size) {
-            loadAssetDetail(currentState.assets[nextIndex].id, nextIndex)
+        if (nextIndex < assets.size) {
+            loadAssetDetail(assets[nextIndex].id, nextIndex)
         }
     }
 

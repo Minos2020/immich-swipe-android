@@ -67,6 +67,7 @@ import com.example.immichswipe.data.repository.SessionRepository
 import com.example.immichswipe.domain.model.Album
 import com.example.immichswipe.domain.model.Asset
 import com.example.immichswipe.R
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -75,8 +76,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.vector.ImageVector
 
-private val MaterialGreen = Color(0xFF4CAF50)
-private val MaterialRed = Color(0xFFE57373)
+private val MaterialGreen = Color(0xFF2E7D32) // Un vert plus profond (Green 800)
+private val MaterialRed = Color(0xFFC62828)   // Un rouge plus marqué (Red 800)
 
 /**
  * Helper pour trouver l'Activity à partir du Context.
@@ -236,10 +237,12 @@ fun SwipeHeader(uiState: SwipeUiState) {
                         Brush.horizontalGradient(
                             colors = listOf(
                                 MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.secondary
+                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.9f)
                             )
                         )
                     )
+                    // On ajoute une légère couche sombre pour faire ressortir le texte blanc
+                    .background(Color.Black.copy(alpha = 0.1f))
             )
             
             // Texte de l'album (en blanc ou noir selon le contraste)
@@ -415,6 +418,19 @@ fun SwipeCard(
     val offsetX = remember { Animatable(0f) }
     val offsetY = remember { Animatable(0f) }
     var isFullscreenOpen by rememberSaveable { mutableStateOf(false) }
+    var isVideoReady by remember(asset.id) { mutableStateOf(false) }
+    var showLoadingIndicator by remember(asset.id) { mutableStateOf(false) }
+
+    // On affiche l'indicateur de chargement seulement après un court délai (ex: 400ms)
+    // pour éviter les clignotements si la vidéo est déjà prête ou charge instantanément.
+    LaunchedEffect(asset.id, isVideoReady) {
+        if (!isVideoReady) {
+            delay(500)
+            showLoadingIndicator = true
+        } else {
+            showLoadingIndicator = false
+        }
+    }
 
     // Hauteur du panneau de métadonnées
     val metadataHeight = 300.dp
@@ -452,6 +468,19 @@ fun SwipeCard(
 
     // Gestion du cycle de vie pour mettre en pause la vidéo quand on quitte l'app
     DisposableEffect(exoPlayer, lifecycleOwner) {
+        val listener = object : Player.Listener {
+            override fun onPlaybackStateChanged(state: Int) {
+                isVideoReady = state == Player.STATE_READY
+            }
+        }
+        
+        // Initialiser l'état immédiatement si le player est déjà prêt
+        if (exoPlayer?.playbackState == Player.STATE_READY) {
+            isVideoReady = true
+        }
+
+        exoPlayer?.addListener(listener)
+
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_PAUSE -> {
@@ -470,6 +499,7 @@ fun SwipeCard(
 
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
+            exoPlayer?.removeListener(listener)
             exoPlayer?.stop()
             exoPlayer?.release()
         }
@@ -558,6 +588,22 @@ fun SwipeCard(
                             isFullscreen = false,
                             onDoubleTap = { isFullscreenOpen = true }
                         )
+
+                        // Indicateur de chargement si la vidéo n'est pas prête
+                        if (showLoadingIndicator) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.2f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    color = Color.White,
+                                    strokeWidth = 3.dp,
+                                    modifier = Modifier.size(40.dp)
+                                )
+                            }
+                        }
                     } else {
                         // Image de remplacement pendant que le player est utilisé en plein écran
                         AsyncImage(
@@ -864,8 +910,10 @@ fun IndicatorBadge(text: String, color: Color, align: Alignment, alpha: Float) {
         contentAlignment = align
     ) {
         Surface(
-            color = Color.Transparent, contentColor = color, shape = RoundedCornerShape(8.dp),
-            border = BorderStroke(2.dp, color.copy(alpha = 0.6f))
+            color = color.copy(alpha = 0.05f), // Fond très léger pour le contraste
+            contentColor = color, 
+            shape = RoundedCornerShape(8.dp),
+            border = BorderStroke(2.dp, color.copy(alpha = 0.9f))
         ) {
             Text(
                 text = text, fontSize = 32.sp, fontWeight = FontWeight.Black,
