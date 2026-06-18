@@ -69,6 +69,11 @@ class SettingsViewModel(
                 _uiState.value = _uiState.value.copy(immichButtonPosition = pos)
             }
         }
+        viewModelScope.launch {
+            sessionRepository.defaultLayoutGrid.collect { isGrid ->
+                _uiState.value = _uiState.value.copy(isDefaultLayoutGrid = isGrid)
+            }
+        }
     }
 
     fun setPlaybackBehavior(behavior: PlaybackBehavior) {
@@ -98,6 +103,12 @@ class SettingsViewModel(
     fun setImmichButtonPosition(pos: IconPosition) {
         viewModelScope.launch {
             sessionRepository.saveImmichButtonPosition(pos)
+        }
+    }
+
+    fun setDefaultLayoutGrid(isGrid: Boolean) {
+        viewModelScope.launch {
+            sessionRepository.saveDefaultLayoutGrid(isGrid)
         }
     }
 

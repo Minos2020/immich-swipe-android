@@ -73,6 +73,11 @@ class SessionRepository(context: Context) {
     }
 
     /**
+     * Expose la préférence du mode d'affichage par défaut.
+     */
+    val defaultLayoutGrid: Flow<Boolean> = dataStore.isDefaultLayoutGrid()
+
+    /**
      * Sauvegarde une nouvelle session. 
      * Grâce au Flow ci-dessus, tous les observateurs seront notifiés automatiquement.
      */
@@ -113,6 +118,13 @@ class SessionRepository(context: Context) {
      */
     suspend fun saveImmichButtonPosition(pos: IconPosition) {
         dataStore.saveImmichIconPosition(pos.name)
+    }
+
+    /**
+     * Sauvegarde le mode d'affichage par défaut.
+     */
+    suspend fun saveDefaultLayoutGrid(isGrid: Boolean) {
+        dataStore.saveDefaultLayoutGrid(isGrid)
     }
 
     /**

@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -69,6 +70,34 @@ fun SettingsScreen(
                             icon = Icons.Default.DarkMode,
                             selected = uiState.themeMode == AppTheme.DARK,
                             onClick = { viewModel.setThemeMode(AppTheme.DARK) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Spacer(Modifier.height(16.dp))
+
+                    Text(
+                        text = "Affichage par défaut",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ThemeButton(
+                            text = "Liste",
+                            icon = Icons.AutoMirrored.Filled.ViewList,
+                            selected = !uiState.isDefaultLayoutGrid,
+                            onClick = { viewModel.setDefaultLayoutGrid(false) },
+                            modifier = Modifier.weight(1f)
+                        )
+                        ThemeButton(
+                            text = "Grille",
+                            icon = Icons.Default.GridView,
+                            selected = uiState.isDefaultLayoutGrid,
+                            onClick = { viewModel.setDefaultLayoutGrid(true) },
                             modifier = Modifier.weight(1f)
                         )
                     }

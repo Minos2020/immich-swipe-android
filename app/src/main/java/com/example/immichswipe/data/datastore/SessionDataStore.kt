@@ -20,6 +20,7 @@ class SessionDataStore(private val context: Context) {
         private val KEY_SWIPE_INVERTED = androidx.datastore.preferences.core.booleanPreferencesKey("swipe_inverted")
         private val KEY_FULLSCREEN_ICON_POS = stringPreferencesKey("fullscreen_icon_pos")
         private val KEY_IMMICH_ICON_POS = stringPreferencesKey("immich_icon_pos")
+        private val KEY_DEFAULT_LAYOUT_GRID = androidx.datastore.preferences.core.booleanPreferencesKey("default_layout_grid")
     }
 
     suspend fun saveSession(baseUrl: String, apiKey: String) {
@@ -69,6 +70,12 @@ class SessionDataStore(private val context: Context) {
 
     suspend fun saveImmichIconPosition(pos: String) {
         context.dataStore.edit { it[KEY_IMMICH_ICON_POS] = pos }
+    }
+
+    fun isDefaultLayoutGrid(): Flow<Boolean> = context.dataStore.data.map { it[KEY_DEFAULT_LAYOUT_GRID] ?: false }
+
+    suspend fun saveDefaultLayoutGrid(isGrid: Boolean) {
+        context.dataStore.edit { it[KEY_DEFAULT_LAYOUT_GRID] = isGrid }
     }
 
     suspend fun clearSession() {

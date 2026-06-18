@@ -14,5 +14,6 @@ data class SettingsUiState(
     val themeMode: AppTheme = AppTheme.SYSTEM,
     val isSwipeInverted: Boolean = false,
     val fullscreenButtonPosition: IconPosition = IconPosition.TOP_RIGHT,
-    val immichButtonPosition: IconPosition = IconPosition.TOP_LEFT
+    val immichButtonPosition: IconPosition = IconPosition.TOP_LEFT,
+    val isDefaultLayoutGrid: Boolean = false
 )

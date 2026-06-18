@@ -1,5 +1,6 @@
 package com.example.immichswipe.feature.home
 
+import kotlinx.coroutines.flow.first
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.immichswipe.data.repository.UserRepository
@@ -48,6 +49,12 @@ class HomeViewModel(
             sessionRepository.themeMode.collect { theme ->
                 _uiState.update { it.copy(themeMode = theme) }
             }
+        }
+
+        // Applique le mode d'affichage par défaut au démarrage
+        viewModelScope.launch {
+            val isGrid = sessionRepository.defaultLayoutGrid.first()
+            _uiState.update { it.copy(isGridView = isGrid) }
         }
 
         // Observe les décisions locales pour mettre à jour les barres de progression
