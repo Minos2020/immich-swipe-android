@@ -33,6 +33,16 @@ class SwipeViewModel(
         observeImmichButtonPosition()
     }
 
+    /**
+     * Retente le chargement des données si une erreur a eu lieu.
+     */
+    fun retryLoading() {
+        if (!_uiState.value.isLoading) {
+            _uiState.value = _uiState.value.copy(error = null)
+            loadAssetsAndDecisions()
+        }
+    }
+
     private fun observePlaybackBehavior() {
         viewModelScope.launch {
             sessionRepository.playbackBehavior.collect { behavior ->

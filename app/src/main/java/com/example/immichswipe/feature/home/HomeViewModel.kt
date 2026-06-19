@@ -57,12 +57,12 @@ class HomeViewModel(
             _uiState.update { it.copy(isGridView = isGrid) }
         }
 
-        // SOLUTION : Observe l'état de portée du serveur de manière GLOBALE.
+        // SOLUTION : Observe l'état de santé global de la connexion.
         // Puisque SessionManager met à jour son Flow à chaque requête réseau,
         // la pastille réagira à tout (refresh, swipe, vidéo, etc.)
         viewModelScope.launch {
-            SessionManager.isServerReachable.collect { reachable ->
-                _uiState.update { it.copy(isServerReachable = reachable) }
+            SessionManager.connectionStatus.collect { status ->
+                _uiState.update { it.copy(connectionStatus = status) }
             }
         }
 

@@ -4,6 +4,23 @@ import com.example.immichswipe.data.api.ImmichApi
 import com.example.immichswipe.data.api.RetrofitFactory
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import androidx.compose.ui.graphics.Color
+
+/**
+ * Représente les différents niveaux de santé de la connexion.
+ */
+enum class ConnectionLevel(val color: Color) {
+    ONLINE(Color(0xFF4CAF50)),  // Vert
+    ISSUES(Color(0xFFFF9800)),  // Orange
+    OFFLINE(Color(0xFFF44336))  // Rouge
+}
+
+data class ConnectionStatus(
+    val level: ConnectionLevel = ConnectionLevel.ONLINE,
+    val message: String = "Connecté au serveur",
+    val hint: String? = null,
+    val lastUpdate: Long = System.currentTimeMillis()
+)
 
 object SessionManager {
 
@@ -12,13 +29,12 @@ object SessionManager {
     var api: ImmichApi? = null
         private set
 
-    // Flux global indiquant si le serveur est joignable.
-    // Mis à jour automatiquement par l'intercepteur réseau.
-    private val _isServerReachable = MutableStateFlow(true)
-    val isServerReachable = _isServerReachable.asStateFlow()
+    // Flux global indiquant la santé de la connexion.
+    private val _connectionStatus = MutableStateFlow(ConnectionStatus())
+    val connectionStatus = _connectionStatus.asStateFlow()
 
-    fun updateReachability(reachable: Boolean) {
-        _isServerReachable.value = reachable
+    fun updateStatus(level: ConnectionLevel, message: String, hint: String? = null) {
+        _connectionStatus.value = ConnectionStatus(level, message, hint)
     }
 
     fun initialize(config: SessionConfig) {
@@ -29,13 +45,10 @@ object SessionManager {
     fun clear() {
         config = null
         api = null
+        _connectionStatus.value = ConnectionStatus(ConnectionLevel.OFFLINE, "Déconnecté")
     }
 
-    fun isLoggedIn(): Boolean {
-        return api != null
-    }
-
+    fun isLoggedIn(): Boolean = api != null
     fun getBaseUrl(): String? = config?.baseUrl
-
     fun getApiKey(): String? = config?.apiKey
 }

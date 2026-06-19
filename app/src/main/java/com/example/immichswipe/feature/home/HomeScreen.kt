@@ -162,13 +162,13 @@ fun HomeScreen(
                                     )
                                 }
 
-                                // Indicateur de connexion (Badge vert/rouge)
+                                // Indicateur de connexion (Badge tricolore)
                                 Surface(
                                     modifier = Modifier
                                         .padding(end = 16.dp, bottom = 2.dp)
                                         .size(10.dp)
                                         .border(1.5.dp, MaterialTheme.colorScheme.surface, CircleShape),
-                                    color = if (uiState.isServerReachable) Color(0xFF4CAF50) else Color(0xFFF44336),
+                                    color = uiState.connectionStatus.level.color,
                                     shape = CircleShape
                                 ) {}
                             }
@@ -304,6 +304,7 @@ fun HomeScreen(
     if (uiState.showProfilePopup) {
         ProfilePopup(
             user = uiState.user,
+            connectionStatus = uiState.connectionStatus,
             onClose = { viewModel.toggleProfilePopup(false) },
             onSettingsClick = { viewModel.onTabSelected(HomeTab.SETTINGS) },
             onLogout = { viewModel.logout() }
@@ -314,6 +315,7 @@ fun HomeScreen(
 @Composable
 fun ProfilePopup(
     user: com.example.immichswipe.domain.model.User?,
+    connectionStatus: com.example.immichswipe.core.ConnectionStatus,
     onClose: () -> Unit,
     onSettingsClick: () -> Unit,
     onLogout: () -> Unit
@@ -403,7 +405,56 @@ fun ProfilePopup(
                     color = MaterialTheme.colorScheme.outline
                 )
 
-                Spacer(Modifier.height(32.dp))
+                Spacer(Modifier.height(24.dp))
+
+                // Diagnostic de connexion
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = connectionStatus.level.color.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, connectionStatus.level.color.copy(alpha = 0.3f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .background(connectionStatus.level.color, CircleShape)
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = when(connectionStatus.level) {
+                                    com.example.immichswipe.core.ConnectionLevel.ONLINE -> "Serveur opérationnel"
+                                    com.example.immichswipe.core.ConnectionLevel.ISSUES -> "Connexion perturbée"
+                                    com.example.immichswipe.core.ConnectionLevel.OFFLINE -> "Serveur injoignable"
+                                    else -> "Statut inconnu"
+                                },
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = connectionStatus.level.color
+                            )
+                            Text(
+                                text = connectionStatus.message,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            if (connectionStatus.hint != null) {
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = connectionStatus.hint,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(24.dp))
 
                 // Actions
                 Surface(

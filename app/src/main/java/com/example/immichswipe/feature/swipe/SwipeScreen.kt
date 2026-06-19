@@ -107,6 +107,17 @@ fun SwipeScreen(
         factory = SwipeViewModelFactory(assetRepository, sessionRepository, swipeDecisionRepository, album)
     )
     val uiState by viewModel.uiState.collectAsState()
+    
+    // On observe la santé globale de la connexion
+    val connectionStatus by SessionManager.connectionStatus.collectAsState()
+
+    // SOLUTION ROBUSTE : Relancer le chargement si on revient sur cet écran 
+    // OU si la connexion internet est rétablie alors qu'on était en erreur.
+    LaunchedEffect(uiState.error, connectionStatus.level) {
+        if (uiState.error != null && connectionStatus.level == com.example.immichswipe.core.ConnectionLevel.ONLINE) {
+            viewModel.retryLoading()
+        }
+    }
 
     Column(
         modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
@@ -137,7 +148,19 @@ fun SwipeScreen(
             if (uiState.isLoading) {
                 CircularProgressIndicator()
             } else if (uiState.error != null) {
-                Text(text = uiState.error!!, color = MaterialTheme.colorScheme.error)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = uiState.error!!, 
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(16.dp),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Button(onClick = { viewModel.retryLoading() }) {
+                        Icon(Icons.Default.Refresh, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Réessayer")
+                    }
+                }
             } else if (uiState.currentIndex < uiState.assets.size) {
                 val currentIndex = uiState.currentIndex
                 val assets = uiState.assets

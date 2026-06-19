@@ -4,6 +4,7 @@ import com.example.immichswipe.domain.model.Album
 import com.example.immichswipe.domain.model.User
 import com.example.immichswipe.core.PlaybackBehavior
 import com.example.immichswipe.core.AppTheme
+import com.example.immichswipe.core.ConnectionStatus
 
 /**
  * Les différents onglets disponibles dans l'application.
@@ -33,7 +34,7 @@ data class HomeUiState(
     val albumPendingDeletes: Map<String, Int> = emptyMap(),
     val isGridView: Boolean = false, // Toggle entre liste et grille
     val searchQuery: String = "", // Texte de recherche pour filtrer les albums
-    val isServerReachable: Boolean = true // Indique si le serveur Immich est joignable
+    val connectionStatus: ConnectionStatus = ConnectionStatus()
 ) {
     /**
      * Retourne la liste des albums filtrée par le texte de recherche.
