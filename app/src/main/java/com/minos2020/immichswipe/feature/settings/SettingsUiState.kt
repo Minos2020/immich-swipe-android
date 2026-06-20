@@ -1,0 +1,22 @@
+package com.minos2020.immichswipe.feature.settings
+
+import com.minos2020.immichswipe.core.AppTheme
+import com.minos2020.immichswipe.core.IconPosition
+import com.minos2020.immichswipe.core.PlaybackBehavior
+
+/**
+ * État de l'écran des paramètres.
+ */
+data class SettingsUiState(
+    val isLoading: Boolean = false,
+    val userName: String = "",
+    val playbackBehavior: PlaybackBehavior = PlaybackBehavior.PAUSE_OTHERS,
+    val themeMode: AppTheme = AppTheme.SYSTEM,
+    val isSwipeInverted: Boolean = false,
+    val fullscreenButtonPosition: IconPosition = IconPosition.TOP_RIGHT,
+    val immichButtonPosition: IconPosition = IconPosition.TOP_LEFT,
+    val isDefaultLayoutGrid: Boolean = false,
+    val skipLifespanDays: Long = 0L,
+    val showSkipLifespanWarning: Long? = null, // Contient la valeur cible si le dialogue est affiché
+    val showCustomSkipDialog: Boolean = false // Gère l'affichage du slider personnalisé
+)

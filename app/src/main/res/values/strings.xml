@@ -1,3 +1,70 @@
 <resources>
     <string name="app_name">Immich Swipe</string>
+
+    <!-- Écran de Connexion -->
+    <string name="login_url_label">URL du serveur</string>
+    <string name="login_url_placeholder">https://votre-instance.com</string>
+    <string name="login_api_key_label">Clé API</string>
+    <string name="login_button">Se connecter</string>
+    <string name="login_success">Connexion réussie ✔</string>
+    <string name="login_error_unknown">Une erreur inconnue est survenue</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Accueil</string>
+    <string name="nav_swipe">Swipe</string>
+    <string name="nav_settings">Paramètres</string>
+    <string name="nav_back">Retour</string>
+
+    <!-- Écran d'Accueil -->
+    <string name="home_search_placeholder">Rechercher un album…</string>
+    <string name="home_no_results">Aucun album ne correspond à votre recherche</string>
+    <string name="home_error_title">Oups ! Une erreur est survenue</string>
+    <string name="home_retry_button">Réessayer</string>
+    <string name="home_status_in_progress">En cours</string>
+    <string name="home_status_not_started">Pas commencé</string>
+    <string name="home_status_completed">Terminés</string>
+    <string name="home_album_completed">Terminé</string>
+    <string name="home_unsynced_changes">Contient %1$d suppressions non synchronisées</string>
+    <string name="home_sorted_count">%1$d / %2$d triés</string>
+
+    <!-- Popup Profil & Diagnostic -->
+    <string name="profile_connected_label">Connecté au serveur Immich</string>
+    <string name="profile_logout_button">Se déconnecter</string>
+    <string name="profile_source_code">Code source</string>
+    <string name="diag_online">Serveur opérationnel</string>
+    <string name="diag_issues">Connexion perturbée</string>
+    <string name="diag_offline">Serveur injoignable</string>
+    <string name="diag_unknown">Statut inconnu</string>
+    <string name="diag_connected_msg">Connecté à Immich</string>
+
+    <!-- Paramètres -->
+    <string name="settings_title">Paramètres</string>
+    <string name="settings_section_appearance">Apparence</string>
+    <string name="settings_theme_label">Thème de l\'application</string>
+    <string name="settings_theme_system">Système</string>
+    <string name="settings_theme_light">Clair</string>
+    <string name="settings_theme_dark">Sombre</string>
+    <string name="settings_layout_label">Affichage par défaut</string>
+    <string name="settings_layout_list">Liste</string>
+    <string name="settings_layout_grid">Grille</string>
+    <string name="settings_section_tri">Tri</string>
+    <string name="settings_skip_lifespan_label">Durée de vie des SKIP</string>
+    <string name="settings_skip_lifespan_desc">Au bout de ce délai, les photos \'passées\' redeviennent \'non triées\' pour vous permettre de les réévaluer.</string>
+    <string name="settings_skip_never">Les SKIP ne reviennent jamais</string>
+    <string name="settings_skip_hint">Plus de précision sur les courtes durées</string>
+    <string name="settings_skip_warning_title">Modifier la durée des SKIP</string>
+    <string name="settings_skip_warning_msg">En changeant cette durée, certaines photos que vous aviez \'passées\' pourraient réapparaître immédiatement dans votre pile de tri si elles dépassent le nouveau délai.</string>
+    <string name="settings_section_interaction">Interaction</string>
+    <string name="settings_swipe_invert_label">Inverser le sens du swipe</string>
+    <string name="settings_swipe_invert_desc">A gauche pour garder, à droite pour supprimer</string>
+    <string name="settings_fullscreen_pos_label">Position du bouton Plein Écran</string>
+    <string name="settings_immich_pos_label">Position du bouton Ouvrir dans Immich</string>
+    <string name="settings_video_behavior_label">Comportement vidéo</string>
+    <string name="settings_video_behavior_desc">Gérer l\'interaction avec les autres sons de l\'appareil lors de la lecture d\'une vidéo</string>
+    <string name="settings_video_pause">Couper tous les autres sons</string>
+    <string name="settings_video_ignore">Jouer par dessus les autres sons</string>
+    <string name="settings_section_account">Compte</string>
+    <string name="common_confirm">Confirmer</string>
+    <string name="common_cancel">Annuler</string>
+    <string name="common_apply">Appliquer</string>
 </resources>
