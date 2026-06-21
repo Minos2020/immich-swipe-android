@@ -22,8 +22,9 @@ class AppViewModel(
     val uiState: StateFlow<AppUiState> = _uiState.asStateFlow()
 
     init {
-        // Au démarrage, on lance l'observation réactive de la session
+        // Au démarrage, on lance l'observation réactive de la session et du thème
         observeSession()
+        observeTheme()
     }
 
     private fun observeSession() {

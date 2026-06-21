@@ -12,10 +12,10 @@ Inspirée par l'application [Sponge](https://get-sponge.com/) (concept similaire
 
 ## 📸 Aperçu
 
-| La pile de tri | Mode Revue (Résumé) | Paramètres & SKIP |
-|:---:|:---:|:---:|
-| <img src="metadata/en-US/images/phoneScreenshots/swipe.png" width="200"> | <img src="metadata/en-US/images/phoneScreenshots/review.png" width="200"> | <img src="metadata/en-US/images/phoneScreenshots/settings.png" width="200"> |
-| *Swipez pour décider* | *Vérifiez avant de supprimer* | *Personnalisez votre expérience* |
+|                                       Écran d'accueil                                        |                                    La pile de tri                                    |                                      Mode Revue                                       |
+|:--------------------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------:|:-------------------------------------------------------------------------------------:|
+| <img src="metadata/en-US/images/phoneScreenshots/Light_HomeScreen_GridView.png" width="200"> | <img src="metadata/en-US/images/phoneScreenshots/Light_SwipeScreen.png" width="200"> | <img src="metadata/en-US/images/phoneScreenshots/Light_ReviewScreen.png" width="200"> |
+|                                    *Parcourez vos albums*                                    |                                *Swipez pour décider*                                 |                             *Vérifiez avant de supprimer*                             |
 
 ## ✨ Fonctionnalités
 

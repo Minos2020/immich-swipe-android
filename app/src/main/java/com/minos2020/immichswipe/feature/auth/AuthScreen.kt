@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.minos2020.immichswipe.R
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.stringResource
 
 
@@ -51,8 +52,11 @@ fun AuthScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Spacer(Modifier.height(15.dp))
+                val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+                val logoRes = if (isDark) R.drawable.immichswipe_logo_colors_dark else R.drawable.immichswipe_logo_colors_light
+                
                 Image(
-                    painter = painterResource(id = R.drawable.logo_immichswipe_couleurs),
+                    painter = painterResource(id = logoRes),
                     contentDescription = stringResource(R.string.app_name),
                     modifier = Modifier
                         .height(50.dp)

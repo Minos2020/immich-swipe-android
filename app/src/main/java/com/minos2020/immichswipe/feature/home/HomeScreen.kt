@@ -34,6 +34,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -104,8 +105,11 @@ fun HomeScreen(
                 Column {
                     TopAppBar(
                         title = {
+                            val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+                            val logoRes = if (isDark) R.drawable.immichswipe_logo_colors_dark else R.drawable.immichswipe_logo_colors_light
+                            
                             Image(
-                                painter = painterResource(id = R.drawable.logo_immichswipe_couleurs),
+                                painter = painterResource(id = logoRes),
                                 contentDescription = stringResource(R.string.app_name),
                                 modifier = Modifier
                                     .height(35.dp)
@@ -351,8 +355,11 @@ fun ProfilePopup(
                     IconButton(onClick = onClose) {
                         Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_close))
                     }
+                    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+                    val logoRes = if (isDark) R.drawable.immichswipe_logo_colors_dark else R.drawable.immichswipe_logo_colors_light
+                    
                     Image(
-                        painter = painterResource(id = R.drawable.logo_immichswipe_couleurs),
+                        painter = painterResource(id = logoRes),
                         contentDescription = null,
                         modifier = Modifier.height(24.dp),
                         contentScale = ContentScale.Fit

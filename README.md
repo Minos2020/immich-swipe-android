@@ -12,10 +12,10 @@ Inspired by the [Sponge](https://get-sponge.com/) app (similar concept for local
 
 ## 📸 Overview
 
-| Sorting Stack | Review Mode (Summary) | Settings & SKIP |
-|:---:|:---:|:---:|
-| <img src="metadata/en-US/images/phoneScreenshots/swipe.png" width="200"> | <img src="metadata/en-US/images/phoneScreenshots/review.png" width="200"> | <img src="metadata/en-US/images/phoneScreenshots/settings.png" width="200"> |
-| *Swipe to decide* | *Check before deleting* | *Customize your experience* |
+|                                         Home Screen                                          |                                    Sorting Stack                                     |                                      Review Mode                                      |
+|:--------------------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------:|:-------------------------------------------------------------------------------------:|
+| <img src="metadata/en-US/images/phoneScreenshots/Light_HomeScreen_GridView.png" width="200"> | <img src="metadata/en-US/images/phoneScreenshots/Light_SwipeScreen.png" width="200"> | <img src="metadata/en-US/images/phoneScreenshots/Light_ReviewScreen.png" width="200"> |
+|                                     *Browse your albums*                                     |                                  *Swipe to decide*                                   |                                *Check before deleting*                                |
 
 ## ✨ Features
 
