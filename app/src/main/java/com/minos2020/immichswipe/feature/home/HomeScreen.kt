@@ -523,7 +523,7 @@ fun ProfilePopup(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        painter = painterResource(id = R.drawable.ic_launcher_foreground), // Remplace par une icône github si tu en as
+                        painter = painterResource(id = R.drawable.logo_immich_swipe),
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.primary
