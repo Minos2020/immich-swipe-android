@@ -17,6 +17,15 @@ Inspired by the [Sponge](https://get-sponge.com/) app (similar concept for local
 | <img src="metadata/en-US/images/phoneScreenshots/Light_HomeScreen_GridView.png" width="200"> | <img src="metadata/en-US/images/phoneScreenshots/Light_SwipeScreen.png" width="200"> | <img src="metadata/en-US/images/phoneScreenshots/Light_ReviewScreen.png" width="200"> |
 |                                     *Browse your albums*                                     |                                  *Swipe to decide*                                   |                                *Check before deleting*                                |
 
+<details>
+<summary>🌙 <b>View Dark Mode Gallery</b></summary>
+
+|                                     Home Screen (Dark)                                      |                                Sorting Stack (Dark)                                 |                                  Review Mode (Dark)                                  |                                    Settings (Dark)                                     |
+|:-------------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------:|:--------------------------------------------------------------------------------------:|
+| <img src="metadata/en-US/images/phoneScreenshots/Dark_HomeScreen_GridView.png" width="200"> | <img src="metadata/en-US/images/phoneScreenshots/Dark_SwipeScreen.png" width="200"> | <img src="metadata/en-US/images/phoneScreenshots/Dark_ReviewScreen.png" width="200"> | <img src="metadata/en-US/images/phoneScreenshots/Dark_SettingsScreen.png" width="200"> |
+
+</details>
+
 ## ✨ Features
 
 - **🚀 Fast Sorting Stack**: Swipe right to keep, left to delete. The scrolling banner at the top gives you direct visual feedback on your choices and upcoming media.

@@ -17,6 +17,15 @@ Inspirée par l'application [Sponge](https://get-sponge.com/) (concept similaire
 | <img src="metadata/en-US/images/phoneScreenshots/Light_HomeScreen_GridView.png" width="200"> | <img src="metadata/en-US/images/phoneScreenshots/Light_SwipeScreen.png" width="200"> | <img src="metadata/en-US/images/phoneScreenshots/Light_ReviewScreen.png" width="200"> |
 |                                    *Parcourez vos albums*                                    |                                *Swipez pour décider*                                 |                             *Vérifiez avant de supprimer*                             |
 
+<details>
+<summary>🌙 <b>Voir la galerie en Mode Sombre</b></summary>
+
+|                                       Écran d'accueil                                       |                                   La pile de tri                                    |                                      Mode Revue                                      |                                       Paramètres                                       |
+|:-------------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------:|:--------------------------------------------------------------------------------------:|
+| <img src="metadata/en-US/images/phoneScreenshots/Dark_HomeScreen_GridView.png" width="200"> | <img src="metadata/en-US/images/phoneScreenshots/Dark_SwipeScreen.png" width="200"> | <img src="metadata/en-US/images/phoneScreenshots/Dark_ReviewScreen.png" width="200"> | <img src="metadata/en-US/images/phoneScreenshots/Dark_SettingsScreen.png" width="200"> |
+
+</details>
+
 ## ✨ Fonctionnalités
 
 - **🚀 Pile de tri Rapide** : Swipez à droite pour garder, à gauche pour supprimer. Le bandeau déroulant en haut vous donne un retour visuel direct sur vos choix et les médias à venir.
