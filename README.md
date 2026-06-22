@@ -52,6 +52,15 @@ Inspired by the [Sponge](https://get-sponge.com/) app (similar concept for local
      - `asset.delete`
 3. Select an album and start sorting!
 
+## 📦 Installation
+
+[<img src="https://github.com/user-attachments/assets/713d71c5-3dec-4ec4-a3f2-8d28d025a9c6"
+  alt="Get it on Obtainium"
+  height="30">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/minos2020/immich-swipe)
+  
+- **Direct Download**: Get the latest APK from the [Releases](https://github.com/minos2020/immich-swipe/releases) section.
+- **IzzyOnDroid / F-Droid**: Coming soon, hopefully.
+
 ## 🛠️ Build
 
 If you want to compile the application yourself:

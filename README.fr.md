@@ -52,6 +52,16 @@ Inspirée par l'application [Sponge](https://get-sponge.com/) (concept similaire
      - `asset.delete`
 3. Sélectionnez un album et commencez à trier !
 
+## 📦 Installation
+
+[<img src="https://github.com/user-attachments/assets/713d71c5-3dec-4ec4-a3f2-8d28d025a9c6"
+alt="Get it on Obtainium"
+height="30">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/minos2020/immich-swipe)
+
+- **Téléchargement Direct** : Récupérez le dernier APK dans la section [Releases](https://github.com/minos2020/immich-swipe/releases).
+- **IzzyOnDroid / F-Droid** : Prochainement disponible.
+
+
 ## 🛠️ Build
 
 Si vous souhaitez compiler l'application vous-même :
