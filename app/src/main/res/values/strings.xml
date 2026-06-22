@@ -90,9 +90,9 @@
 
     <!-- Écran Swipe -->
     <string name="swipe_keep">Garder</string>
-    <string name="swipe_keep_upper">GARDER</string>
+    <string name="swipe_keep_upper">KEEP</string>
     <string name="swipe_delete">Supprimer</string>
-    <string name="swipe_delete_upper">SUPPRIMER</string>
+    <string name="swipe_delete_upper">DELETE</string>
     <string name="swipe_skip">Passer</string>
     <string name="swipe_remaining">Restant</string>
     <string name="swipe_summary_title">Résumé du tri</string>

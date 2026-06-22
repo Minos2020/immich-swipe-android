@@ -48,7 +48,11 @@ class SwipeViewModel(
     fun retryLoading() {
         if (!_uiState.value.isLoading) {
             _uiState.value = _uiState.value.copy(error = null)
-            loadAssetsAndDecisions()
+            // On ajoute un petit délai pour éviter de spammer le serveur en cas de crash en boucle
+            viewModelScope.launch {
+                delay(500)
+                loadAssetsAndDecisions()
+            }
         }
     }
 

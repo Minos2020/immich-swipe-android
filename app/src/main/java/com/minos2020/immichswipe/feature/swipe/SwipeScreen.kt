@@ -116,9 +116,9 @@ fun SwipeScreen(
     // On observe la santé globale de la connexion
     val connectionStatus by SessionManager.connectionStatus.collectAsState()
 
-    // SOLUTION ROBUSTE : Relancer le chargement si on revient sur cet écran 
-    // OU si la connexion internet est rétablie alors qu'on était en erreur.
-    LaunchedEffect(uiState.error, connectionStatus.level) {
+    // SOLUTION ROBUSTE : Relancer le chargement UNIQUEMENT si on passe de OFFLINE à ONLINE
+    // et qu'on était en erreur. On ne surveille plus uiState.error ici pour éviter les boucles.
+    LaunchedEffect(connectionStatus.level) {
         if (uiState.error != null && connectionStatus.level == com.minos2020.immichswipe.core.ConnectionLevel.ONLINE) {
             viewModel.retryLoading()
         }

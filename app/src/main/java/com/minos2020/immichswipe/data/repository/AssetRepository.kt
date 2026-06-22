@@ -2,6 +2,7 @@ package com.minos2020.immichswipe.data.repository
 
 import com.minos2020.immichswipe.data.api.DeleteAssetsRequest
 import com.minos2020.immichswipe.data.api.ImmichApi
+import com.minos2020.immichswipe.data.api.SearchAssetsRequest
 import com.minos2020.immichswipe.domain.model.Asset
 
 /**
@@ -14,7 +15,8 @@ class AssetRepository(
      * Récupère toutes les photos d'un album.
      */
     suspend fun getAssetsByAlbum(albumId: String): List<Asset> {
-        return api.getAlbumInfo(albumId).assets
+        val request = SearchAssetsRequest(albumIds = listOf(albumId))
+        return api.searchAssets(request).assets.items
     }
 
     /**

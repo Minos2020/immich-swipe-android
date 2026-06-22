@@ -7,6 +7,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.HTTP
 import retrofit2.http.Path
+import retrofit2.http.POST
 
 interface ImmichApi {
 
@@ -16,8 +17,12 @@ interface ImmichApi {
     @GET("api/albums")
     suspend fun getAlbums(): List<Album>
 
-    @GET("api/albums/{id}")
-    suspend fun getAlbumInfo(@Path("id") albumId: String): AlbumWithAssets
+//    @GET("api/albums/{id}")
+//    suspend fun getAlbumInfo(@Path("id") albumId: String): AlbumWithAssets
+
+    // Nouveau Endpoint à utiliser à partir de la version v3 du serveur Immich
+    @POST("api/search/metadata")
+    suspend fun searchAssets(@Body request: SearchAssetsRequest): SearchResponse
 
     @GET("api/assets/{id}")
     suspend fun getAssetDetail(@Path("id") assetId: String): Asset
@@ -39,7 +44,28 @@ data class DeleteAssetsRequest(
 )
 
 /**
- * Objet intermédiaire car l'API Immich renvoie les détails de l'album 
+ * Corps de la requête pour récupérer des assets.
+ * Pourra contenir beaucoup d'autres paramètres si besoin !
+ */
+data class SearchAssetsRequest(
+    val albumIds: List<String>? = null,
+    val size: Int = 1000, //pour éviter les histoires de pagination pour l'instant
+)
+
+data class SearchResponse(
+    val assets: SearchAssetResult
+)
+
+/**
+ * Détail des assets trouvés.
+ */
+data class SearchAssetResult(
+    val items: List<Asset>,
+    val total: Int
+)
+
+/**
+ * Objet intermédiaire car l'API Immich renvoie les détails de l'album
  * ET la liste des assets dans le même appel.
  */
 data class AlbumWithAssets(
