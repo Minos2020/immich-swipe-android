@@ -523,7 +523,7 @@ fun ProfilePopup(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        painter = painterResource(id = R.drawable.logo_immich_swipe),
+                        painter = rememberVectorPainter(Icons.Default.Code),
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.primary
