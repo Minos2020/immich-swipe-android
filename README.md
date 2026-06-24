@@ -66,6 +66,7 @@ If you want to compile the application yourself:
 - **JDK 17** or higher required.
 - **Android Studio** (Ladybug version or newer recommended).
 - Clone the repository and import the project into Android Studio.
+- Sync Gradle
 - Use `./gradlew assembleDebug` to generate a test APK.
 
 ## 📄 License

@@ -1,4 +1,5 @@
-# Build folders
+# --- DOSSIERS DE BUILD ---
+# Fichiers générés par Gradle et le processus de compilation (temporaires et caches)
 .gradle
 /build
 /captures
@@ -6,27 +7,34 @@
 .externalNativeBuild
 .cxx
 
-# Local configuration & Secrets
+# --- CONFIGURATION LOCALE & SECRETS ---
+# local.properties contient le chemin vers le SDK Android propre à votre machine
 /local.properties
 local.properties
+
+# Fichiers de configuration sensibles (Clés d'API, services Google, secrets)
 google-services.json
 secrets.xml
 
-# Keystore files (CRITICAL: Do not commit)
+# --- SIGNATURE DE L'APPLICATION (CRITIQUE) ---
+# Clés de signature (.jks, .keystore) : ne doivent JAMAIS être commitées pour des raisons de sécurité
 *.jks
 *.keystore
 *.p12
 
-# Android Studio / IntelliJ
+# --- CONFIGURATION DE L'IDE ---
+# Paramètres spécifiques à Android Studio / IntelliJ (peuvent varier d'un développeur à l'autre)
 *.iml
 *.ipr
 *.iws
 .idea/
 
-# OS specific
+# --- SYSTÈME D'EXPLOITATION ---
+# Fichiers temporaires créés par macOS
 .DS_Store
 
-# Fastlane
+# --- FASTLANE ---
+# Rapports, logs et captures d'écran générés automatiquement lors de l'automatisation du déploiement
 fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots

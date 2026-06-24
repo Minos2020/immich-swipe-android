@@ -66,6 +66,7 @@ Si vous souhaitez compiler l'application vous-même :
 - **JDK 17** ou supérieur requis.
 - **Android Studio** (Version Ladybug ou plus récente recommandée).
 - Clonez le dépôt et importez le projet dans Android Studio.
+- Synchroniser Gradle
 - Utilisez `./gradlew assembleDebug` pour générer un APK de test.
 
 ## 📄 Licence

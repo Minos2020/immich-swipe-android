@@ -7,7 +7,6 @@ import com.google.gson.annotations.SerializedName
 
 data class Asset(
     val id: String,
-    val deviceAssetId: String,
     val ownerId: String,
     val fileCreatedAt: String,
     val type: String, // IMAGE ou VIDEO
