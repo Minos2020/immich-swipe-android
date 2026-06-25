@@ -9,7 +9,7 @@
 
 Immich Swipe est une application Android open-source conçue pour faciliter le tri de vos photos et vidéos hébergées sur votre serveur [Immich](https://immich.app/).
 
-Inspirée par l'application [Sponge](https://get-sponge.com/) (concept similaire pour les fichiers locaux), elle vous permet de trier rapidement vos médias par de simples gestes de balayage (swipe), avec une interface fluide et moderne.
+Inspirée par l'application [Sponge](https://play.google.com/store/apps/details?id=com.prismtree.sponge&pcampaignid=web_share) (concept similaire pour les fichiers locaux), elle vous permet de trier rapidement vos médias par de simples gestes de balayage (swipe), avec une interface fluide et moderne.
 
 > **Note** : Ce projet est né d'un besoin personnel et a été développé avec l'aide de l'IA. Bien que je ne sois pas développeur de métier, j'accorde une grande importance à la stabilité et à l'expérience utilisateur.
 >
@@ -44,13 +44,14 @@ Inspirée par l'application [Sponge](https://get-sponge.com/) (concept similaire
 ## ⚙️ Configuration
 
 1. Entrez l'URL de votre serveur Immich (ex: `https://immich.votre-domaine.fr`).
-2. Entrez votre clé API Immich.
+2. Entrez votre clé API Immich (si vous n'en avez pas, [créez en une](https://my.immich.app/user-settings?isOpen=api-keys))
    - **Permissions nécessaires** : Pour le bon fonctionnement de l'application, votre clé API doit avoir les permissions suivantes :
      - `user.read`
      - `album.read`
      - `asset.read`
+     - `asset.view`
      - `asset.delete`
-   > **Serveur Immich v3+** : Pour une raison encore inexpliquée, l'utilisation de ces 4 permissions avec la v3 du serveur Immich rend la récupération des assets TRES lente, rendant l'application inutilisable. Alors qu'avec une clé possédant toutes les permissions, cela fonctionne parfaitement. L'app n'utilise pourtant que des endpoints qui ne requièrent aucune autre permission que les 4 ci-dessus...
+     - `userProfileImage.read` (Optionnel)
 3. Sélectionnez un album et commencez à trier !
 
 ## 📦 Installation

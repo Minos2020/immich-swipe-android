@@ -9,7 +9,7 @@
 
 Immich Swipe is an open-source Android application designed to make sorting your photos and videos hosted on your [Immich](https://immich.app/) server easy and fun.
 
-Inspired by the [Sponge](https://get-sponge.com/) app (similar concept for local files), it allows you to quickly sort your media using simple swipe gestures, featuring a smooth and modern interface.
+Inspired by the [Sponge](https://play.google.com/store/apps/details?id=com.prismtree.sponge&pcampaignid=web_share) app (similar concept for local files), it allows you to quickly sort your media using simple swipe gestures, featuring a smooth and modern interface.
 
 > **Note**: This project started as a personal need and was developed with the help of AI. Although I am not a developer by trade, I place great importance on stability and user experience.
 >
@@ -44,13 +44,14 @@ Inspired by the [Sponge](https://get-sponge.com/) app (similar concept for local
 ## ⚙️ Configuration
 
 1. Enter your Immich server URL (e.g., `https://immich.your-domain.com`).
-2. Enter your Immich API Key.
+2. Enter your Immich API Key (if you don't have it already, [create one here](https://my.immich.app/user-settings?isOpen=api-keys))
    - **Required Permissions**: For the app to function correctly, your API key must have the following permissions:
      - `user.read`
      - `album.read`
      - `asset.read`
+     - `asset.view`
      - `asset.delete`
-   > **Immich server v3+** : For some reason that I'm still trying to understand, allowing only those 4 permissions with Immich Server v3 makes the assets retrieval VERY slow, making the app unusable. Meanwhile, if you allow all permissions it works like a charm. The app only uses API endpoints that require those 4 permissions so... I do not understand yet.
+     - `userProfileImage.read` (Optional)
 3. Select an album and start sorting!
 
 ## 📦 Installation
