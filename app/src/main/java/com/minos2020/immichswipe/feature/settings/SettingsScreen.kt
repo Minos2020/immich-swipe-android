@@ -1,5 +1,10 @@
 package com.minos2020.immichswipe.feature.settings
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
@@ -7,6 +12,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Forward
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.ViewList
@@ -15,6 +21,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -167,6 +174,66 @@ fun SettingsScreen(
             // SECTION INTERACTION
             SettingsSection(title = stringResource(R.string.settings_section_interaction), icon = Icons.Default.TouchApp) {
                 Column {
+                    // Actions de tri (Nouveau)
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = stringResource(R.string.settings_tri_actions_label),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        
+                        SettingsToggleItemSmall(
+                            title = stringResource(R.string.settings_tri_favorite),
+                            checked = uiState.showFavoriteButton,
+                            onCheckedChange = { viewModel.setShowFavorite(it) },
+                            icon = Icons.Default.Star
+                        )
+
+                        AnimatedVisibility(
+                            visible = uiState.showFavoriteButton,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .padding(start = 32.dp, end = 8.dp, bottom = 8.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                        RoundedCornerShape(12.dp)
+                                    )
+                            ) {
+                                SettingsToggleItemSmall(
+                                    title = stringResource(R.string.settings_auto_next_label),
+                                    checked = uiState.autoNextOnFav,
+                                    onCheckedChange = { viewModel.setAutoNextOnFav(it) },
+                                    icon = Icons.AutoMirrored.Filled.Forward
+                                )
+                                Text(
+                                    text = stringResource(R.string.settings_auto_next_desc),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.outline,
+                                    modifier = Modifier.padding(start = 40.dp, end = 16.dp, bottom = 8.dp)
+                                )
+                            }
+                        }
+
+                        SettingsToggleItemSmall(
+                            title = stringResource(R.string.settings_tri_archive),
+                            checked = uiState.showArchiveButton,
+                            onCheckedChange = { viewModel.setShowArchive(it) },
+                            icon = Icons.Default.Archive
+                        )
+                        SettingsToggleItemSmall(
+                            title = stringResource(R.string.settings_tri_lock),
+                            checked = uiState.showLockButton,
+                            onCheckedChange = { viewModel.setShowLock(it) },
+                            icon = Icons.Default.Lock
+                        )
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
+
                     // Inversion du swipe
                     SettingsToggleItem(
                         title = stringResource(R.string.settings_swipe_invert_label),
@@ -354,6 +421,32 @@ fun SettingsSection(title: String, icon: androidx.compose.ui.graphics.vector.Ima
         ) {
             content()
         }
+    }
+}
+
+@Composable
+fun SettingsToggleItemSmall(
+    title: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    icon: androidx.compose.ui.graphics.vector.ImageVector
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .clickable { onCheckedChange(!checked) }
+            .padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(12.dp))
+        Text(text = title, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        Switch(
+            checked = checked, 
+            onCheckedChange = onCheckedChange,
+            modifier = Modifier.scale(0.8f)
+        )
     }
 }
 

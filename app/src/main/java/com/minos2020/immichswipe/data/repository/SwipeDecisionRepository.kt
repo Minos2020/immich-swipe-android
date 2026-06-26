@@ -22,11 +22,12 @@ class SwipeDecisionRepository(
     /**
      * Enregistre un nouveau swipe en base locale.
      */
-    suspend fun saveDecision(assetId: String, albumId: String, decision: String) {
+    suspend fun saveDecision(assetId: String, albumId: String, decision: String, fileSize: Long? = null) {
         val entity = SwipeDecisionEntity(
             assetId = assetId,
             albumId = albumId,
             decision = decision,
+            fileSize = fileSize,
             createdAt = System.currentTimeMillis(),
             isSynced = false
         )

@@ -18,5 +18,9 @@ data class SettingsUiState(
     val isDefaultLayoutGrid: Boolean = false,
     val skipLifespanDays: Long = 0L,
     val showSkipLifespanWarning: Long? = null, // Contient la valeur cible si le dialogue est affiché
-    val showCustomSkipDialog: Boolean = false // Gère l'affichage du slider personnalisé
+    val showCustomSkipDialog: Boolean = false, // Gère l'affichage du slider personnalisé
+    val showFavoriteButton: Boolean = true,
+    val showArchiveButton: Boolean = true,
+    val showLockButton: Boolean = true,
+    val autoNextOnFav: Boolean = true
 )

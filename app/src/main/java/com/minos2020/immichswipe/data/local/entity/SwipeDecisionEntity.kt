@@ -22,6 +22,7 @@ data class SwipeDecisionEntity(
     val assetId: String,
     val albumId: String,
     val decision: String,
+    val fileSize: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val isSynced: Boolean = false
 )

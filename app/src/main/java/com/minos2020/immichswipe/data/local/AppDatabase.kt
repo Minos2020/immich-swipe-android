@@ -13,7 +13,7 @@ import com.minos2020.immichswipe.data.local.entity.SwipeDecisionEntity
  */
 @Database(
     entities = [SwipeDecisionEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

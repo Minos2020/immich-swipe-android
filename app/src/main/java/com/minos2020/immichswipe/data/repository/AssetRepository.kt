@@ -3,6 +3,7 @@ package com.minos2020.immichswipe.data.repository
 import com.minos2020.immichswipe.data.api.DeleteAssetsRequest
 import com.minos2020.immichswipe.data.api.ImmichApi
 import com.minos2020.immichswipe.data.api.SearchAssetsRequest
+import com.minos2020.immichswipe.data.api.UpdateAssetsRequest
 import com.minos2020.immichswipe.domain.model.Asset
 
 /**
@@ -32,6 +33,25 @@ class AssetRepository(
     suspend fun deleteAssets(assetIds: List<String>) {
         if (assetIds.isNotEmpty()) {
             api.deleteAssets(DeleteAssetsRequest(ids = assetIds, force = false))
+        }
+    }
+
+    /**
+     * Met à jour plusieurs assets sur le serveur Immich.
+     */
+    suspend fun updateAssets(
+        assetIds: List<String>,
+        isFavorite: Boolean? = null,
+        visibility: String? = null
+    ) {
+        if (assetIds.isNotEmpty()) {
+            api.updateAssets(
+                UpdateAssetsRequest(
+                    ids = assetIds,
+                    isFavorite = isFavorite,
+                    visibility = visibility
+                )
+            )
         }
     }
 }

@@ -82,6 +82,12 @@
     <string name="settings_video_behavior_desc">Manage interaction with other device sounds when playing a video</string>
     <string name="settings_video_pause">Pause other sounds</string>
     <string name="settings_video_ignore">Play over other sounds</string>
+    <string name="settings_tri_actions_label">Displayed sorting actions</string>
+    <string name="settings_tri_favorite">Favorite button</string>
+    <string name="settings_tri_archive">Archive button</string>
+    <string name="settings_tri_lock">Locked Folder button</string>
+    <string name="settings_auto_next_label">Auto-advance</string>
+    <string name="settings_auto_next_desc">Move to the next photo and automatically mark as KEEP after marking as favorite</string>
     <string name="settings_section_account">Account</string>
     <string name="settings_pos_top_left">Top-Left</string>
     <string name="settings_pos_top_right">Top-Right</string>
@@ -95,6 +101,9 @@
     <string name="swipe_delete_upper">DELETE</string>
     <string name="swipe_skip">Skip</string>
     <string name="swipe_remaining">Remaining</string>
+    <string name="swipe_favorite">Favorites</string>
+    <string name="swipe_archive">Archive</string>
+    <string name="swipe_locked">Lock</string>
     <string name="swipe_summary_title">Sorting summary</string>
     <string name="swipe_sync_success">Synced!</string>
     <string name="swipe_sync_success_desc">Your changes are on Immich</string>
@@ -126,6 +135,7 @@
 
     <!-- Common -->
     <string name="common_confirm">Confirm</string>
+    <string name="common_confirm_sync">Confirm (%1$d items)</string>
     <string name="common_cancel">Cancel</string>
     <string name="common_apply">Apply</string>
     <string name="common_retry">Retry</string>

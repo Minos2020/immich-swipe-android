@@ -82,6 +82,11 @@ class SessionRepository(context: Context) {
      */
     val skipLifespanDays: Flow<Long> = dataStore.getSkipLifespan()
 
+    val showFavoriteButton: Flow<Boolean> = dataStore.isShowFavorite()
+    val showArchiveButton: Flow<Boolean> = dataStore.isShowArchive()
+    val showLockButton: Flow<Boolean> = dataStore.isShowLock()
+    val autoNextOnFav: Flow<Boolean> = dataStore.isAutoNextOnFav()
+
     /**
      * Sauvegarde une nouvelle session. 
      * Grâce au Flow ci-dessus, tous les observateurs seront notifiés automatiquement.
@@ -138,6 +143,11 @@ class SessionRepository(context: Context) {
     suspend fun saveSkipLifespan(days: Long) {
         dataStore.saveSkipLifespan(days)
     }
+
+    suspend fun saveShowFavorite(show: Boolean) { dataStore.saveShowFavorite(show) }
+    suspend fun saveShowArchive(show: Boolean) { dataStore.saveShowArchive(show) }
+    suspend fun saveShowLock(show: Boolean) { dataStore.saveShowLock(show) }
+    suspend fun saveAutoNextOnFav(autoNextOnFav: Boolean) { dataStore.saveAutoNextOnFav(autoNextOnFav) }
 
     /**
      * Supprime la session actuelle (Déconnexion).

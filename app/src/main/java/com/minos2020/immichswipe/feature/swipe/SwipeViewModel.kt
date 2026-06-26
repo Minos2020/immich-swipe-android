@@ -3,8 +3,6 @@ package com.minos2020.immichswipe.feature.swipe
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.minos2020.immichswipe.data.repository.AssetRepository
-import com.minos2020.immichswipe.core.PlaybackBehavior
-import com.minos2020.immichswipe.core.IconPosition
 import com.minos2020.immichswipe.data.repository.SessionRepository
 import com.minos2020.immichswipe.data.repository.SwipeDecisionRepository
 import com.minos2020.immichswipe.domain.model.Album
@@ -32,6 +30,34 @@ class SwipeViewModel(
         observeFullscreenButtonPosition()
         observeImmichButtonPosition()
         observeSkipLifespan()
+        observeButtonVisibility()
+        observeAutoNextOnFav()
+    }
+
+    private fun observeAutoNextOnFav() {
+        viewModelScope.launch {
+            sessionRepository.autoNextOnFav.collect { autoNextOnFav ->
+                _uiState.value = _uiState.value.copy(autoNextOnFav = autoNextOnFav)
+            }
+        }
+    }
+
+    private fun observeButtonVisibility() {
+        viewModelScope.launch {
+            sessionRepository.showFavoriteButton.collect { show ->
+                _uiState.value = _uiState.value.copy(showFavoriteButton = show)
+            }
+        }
+        viewModelScope.launch {
+            sessionRepository.showArchiveButton.collect { show ->
+                _uiState.value = _uiState.value.copy(showArchiveButton = show)
+            }
+        }
+        viewModelScope.launch {
+            sessionRepository.showLockButton.collect { show ->
+                _uiState.value = _uiState.value.copy(showLockButton = show)
+            }
+        }
     }
 
     private fun observeSkipLifespan() {
@@ -111,17 +137,23 @@ class SwipeViewModel(
 
                 // On transforme la liste de SwipeDecisionEntity en Map<String, SwipeDecision>
                 // On filtre les SKIP expirés (au cas où le cleanup prend du temps)
-                val decisionMap = localDecisions.filter { entity ->
-                    val decision = SwipeDecision.valueOf(entity.decision)
+                val decisionMap = mutableMapOf<String, SwipeDecision>()
+                val sizeMap = mutableMapOf<String, Long>()
+
+                localDecisions.forEach { entity ->
+                    val decision = try {
+                        SwipeDecision.valueOf(entity.decision)
+                    } catch (e: Exception) {
+                        null
+                    } ?: return@forEach
+
                     if (decision == SwipeDecision.SKIP && lifespanDays > 0) {
                         val isExpired = (currentTime - entity.createdAt) > lifespanMs
-                        !isExpired
-                    } else {
-                        true
+                        if (isExpired) return@forEach
                     }
-                }.associate { entity ->
-                    entity.assetId to SwipeDecision.valueOf(entity.decision)
-                }.toMutableMap()
+                    decisionMap[entity.assetId] = decision
+                    entity.fileSize?.let { sizeMap[entity.assetId] = it }
+                }
 
                 // NETTOYAGE : Si on a des décisions locales pour des assets qui n'existent plus
                 // dans cet album sur le serveur, on les supprime.
@@ -144,6 +176,7 @@ class SwipeViewModel(
                 _uiState.value = _uiState.value.copy(
                     assets = assets,
                     decisions = decisionMap,
+                    assetSizes = sizeMap,
                     currentIndex = firstUnprocessedIndex,
                     isLoading = false
                 )
@@ -168,7 +201,12 @@ class SwipeViewModel(
                 val currentAssets = _uiState.value.assets.toMutableList()
                 if (index < currentAssets.size) {
                     currentAssets[index] = detail
-                    _uiState.value = _uiState.value.copy(assets = currentAssets)
+                    val newSizes = _uiState.value.assetSizes.toMutableMap()
+                    detail.exifInfo?.fileSizeInBytes?.let { newSizes[assetId] = it }
+                    _uiState.value = _uiState.value.copy(
+                        assets = currentAssets,
+                        assetSizes = newSizes
+                    )
                 }
             } catch (e: Exception) {
                 // Erreur silencieuse pour les détails
@@ -180,13 +218,15 @@ class SwipeViewModel(
     fun onSwipe(decision: SwipeDecision) {
         val currentState = _uiState.value
         val currentAsset = currentState.currentAsset ?: return
+        val currentSize = currentState.assetSizes[currentAsset.id] ?: currentAsset.exifInfo?.fileSizeInBytes
 
         // 1. Sauvegarde en base locale (Room)
         viewModelScope.launch {
             swipeDecisionRepository.saveDecision(
                 assetId = currentAsset.id,
                 albumId = album.id,
-                decision = decision.name
+                decision = decision.name,
+                fileSize = currentSize
             )
         }
 
@@ -194,13 +234,16 @@ class SwipeViewModel(
         val newDecisions = currentState.decisions.toMutableMap()
         newDecisions[currentAsset.id] = decision
 
+        val newSizes = currentState.assetSizes.toMutableMap()
+        currentSize?.let { newSizes[currentAsset.id] = it }
+
         val newHistory = currentState.history.toMutableList()
         newHistory.add(currentAsset.id)
 
         // Trouver le prochain asset à afficher
         val assets = currentState.assets
         var nextIndex = -1
-        
+
         // 1. Chercher d'abord la prochaine photo NON TRAITÉE après l'actuelle
         for (i in (currentState.currentIndex + 1) until assets.size) {
             if (!newDecisions.containsKey(assets[i].id)) {
@@ -208,7 +251,7 @@ class SwipeViewModel(
                 break
             }
         }
-        
+
         // 2. Si rien trouvé après, chercher une photo NON TRAITÉE depuis le début (boucle)
         if (nextIndex == -1) {
             for (i in 0 until currentState.currentIndex) {
@@ -218,7 +261,7 @@ class SwipeViewModel(
                 }
             }
         }
-        
+
         // 3. Si TOUT est traité (Mode Revue), on passe simplement au suivant dans l'ordre de la liste
         if (nextIndex == -1) {
             if (currentState.currentIndex + 1 < assets.size) {
@@ -231,6 +274,7 @@ class SwipeViewModel(
         _uiState.value = currentState.copy(
             currentIndex = nextIndex,
             decisions = newDecisions,
+            assetSizes = newSizes,
             history = newHistory
         )
 
@@ -238,6 +282,28 @@ class SwipeViewModel(
         if (nextIndex < assets.size) {
             loadAssetDetail(assets[nextIndex].id, nextIndex)
         }
+    }
+
+    fun toggleFavorite() {
+        val currentState = _uiState.value
+        val currentAsset = currentState.currentAsset ?: return
+        
+        val newFavorites = currentState.localFavorites.toMutableMap()
+        val currentStatus = currentState.isFavorite(currentAsset.id)
+        newFavorites[currentAsset.id] = !currentStatus
+        
+        _uiState.value = currentState.copy(localFavorites = newFavorites)
+        if (currentState.autoNextOnFav) {
+            onSwipe(SwipeDecision.KEEP) // Avance à la suivante
+        }
+    }
+
+    fun toggleArchive() {
+        onSwipe(SwipeDecision.ARCHIVE)
+    }
+
+    fun toggleLock() {
+        onSwipe(SwipeDecision.LOCK)
     }
 
     fun undo() {
@@ -338,31 +404,58 @@ class SwipeViewModel(
      */
     fun applyChanges() {
         val currentState = _uiState.value
-        val toDelete = currentState.decisions.filter { it.value == SwipeDecision.DELETE }.keys.toList()
+        val decisions = currentState.decisions
+        
+        val toDelete = decisions.filter { it.value == SwipeDecision.DELETE }.keys.toList()
+        val toArchive = decisions.filter { it.value == SwipeDecision.ARCHIVE }.keys.toList()
+        val toLock = decisions.filter { it.value == SwipeDecision.LOCK }.keys.toList()
+        
+        // Gestion des favoris (on ne prend que ceux qui ont réellement changé localement)
+        val toFavorite = currentState.localFavorites.filter { it.value }.keys.toList()
+        val toUnfavorite = currentState.localFavorites.filter { !it.value }.keys.toList()
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSyncing = true)
             try {
-                // 1. Appel API pour supprimer sur Immich
+                // 1. Appels API pour appliquer les changements sur Immich
                 if (toDelete.isNotEmpty()) {
                     assetRepository.deleteAssets(toDelete)
+                }
+                
+                if (toFavorite.isNotEmpty()) {
+                    assetRepository.updateAssets(toFavorite, isFavorite = true)
+                }
+                if (toUnfavorite.isNotEmpty()) {
+                    assetRepository.updateAssets(toUnfavorite, isFavorite = false)
+                }
+                
+                if (toArchive.isNotEmpty()) {
+                    assetRepository.updateAssets(toArchive, visibility = "archive")
+                }
+                
+                if (toLock.isNotEmpty()) {
+                    assetRepository.updateAssets(toLock, visibility = "locked")
                 }
 
                 // 2. Vérification immédiate : On recharge la liste depuis le serveur
                 val freshAssets = assetRepository.getAssetsByAlbum(album.id)
                 val freshIds = freshAssets.map { it.id }.toSet()
 
-                // 3. Identification des échecs : ceux qu'on a voulu supprimer mais qui sont encore là
+                // 3. Identification des échecs (uniquement pour la suppression car l'asset doit disparaître de l'album)
                 val failedDeletions = toDelete.filter { freshIds.contains(it) }
                 
                 // 4. Nettoyage de la base locale :
-                // On supprime de Room les décisions pour les assets qui ne sont PLUS sur le serveur.
-                // IMPORTANT : Si une photo a été supprimée, on la retire de TOUS les albums pour éviter
-                // les incohérences de compteurs (ex: 7/6 assets triés).
-                val disappearedIds = currentState.decisions.keys.filter { !freshIds.contains(it) }
-                if (disappearedIds.isNotEmpty()) {
-                    swipeDecisionRepository.removeDecisionsFromAllAlbums(disappearedIds)
+                // On considère qu'une décision est "appliquée" si elle n'est plus dans la liste des assets de l'album
+                // (soit car supprimée, soit archivée/lockée et donc sortie de la timeline par Immich).
+                val appliedIds = decisions.keys.filter { !freshIds.contains(it) }
+                if (appliedIds.isNotEmpty()) {
+                    swipeDecisionRepository.removeDecisionsFromAllAlbums(appliedIds)
                 }
+
+                // Cas particulier : Favori reste dans l'album, on le marque traité localement aussi si synchro OK
+                // En fait, une fois que c'est synchronisé, on veut souvent repartir à zéro pour cet album
+                // ou garder les décisions "KEEP" locales si on veut. 
+                // Pour l'instant on garde la logique : si c'est encore là, la décision reste locale.
 
                 if (failedDeletions.isNotEmpty()) {
                     _uiState.value = _uiState.value.copy(

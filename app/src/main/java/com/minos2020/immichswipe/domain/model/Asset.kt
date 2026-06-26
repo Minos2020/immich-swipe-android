@@ -12,6 +12,8 @@ data class Asset(
     val type: String, // IMAGE ou VIDEO
     val duration: String? = null,
     val isFavorite: Boolean = false,
+    val isArchived: Boolean = false,
+    val isLocked: Boolean = false,
     val originalFileName: String? = null,
     @SerializedName("extension")
     val fileExtension: String? = null,

@@ -27,6 +27,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Forward
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.automirrored.filled.Undo
@@ -139,6 +141,9 @@ fun SwipeScreen(
             assets = uiState.assets,
             decisions = uiState.decisions,
             currentIndex = uiState.currentIndex,
+            isFavorite = { uiState.isFavorite(it) },
+            isArchived = { uiState.isArchived(it) },
+            isLocked = { uiState.isLocked(it) },
             onAssetClick = { viewModel.onMoveToAsset(it) }
         )
 
@@ -209,35 +214,83 @@ fun SwipeScreen(
 
         // 3. Barre d'actions en bas
         Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp, top = 8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp, bottom = 24.dp)
+                .padding(horizontal = 8.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // BOUTON SUPPRIMER (DELETE)
             FloatingActionButton(
                 onClick = { viewModel.onSwipe(SwipeDecision.DELETE) },
                 containerColor = MaterialTheme.colorScheme.errorContainer,
                 contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                shape = CircleShape
+                shape = CircleShape,
+                modifier = Modifier.size(56.dp)
             ) {
                 Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.swipe_delete))
             }
 
+            // UNDO
             IconButton(
                 onClick = { viewModel.undo() },
-                enabled = uiState.currentIndex > 0 || uiState.history.isNotEmpty()
+                enabled = uiState.currentIndex > 0 || uiState.history.isNotEmpty(),
+                modifier = Modifier.size(40.dp)
             ) {
                 Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = stringResource(R.string.nav_back))
             }
 
-            IconButton(onClick = { viewModel.onSwipe(SwipeDecision.SKIP) }) {
+            // ARCHIVE (Optionnel)
+            if (uiState.showArchiveButton) {
+                IconButton(
+                    onClick = { viewModel.toggleArchive() },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(Icons.Default.Archive, contentDescription = stringResource(R.string.swipe_archive), tint = MaterialTheme.colorScheme.primary)
+                }
+            }
+
+            // FAVORITE (Optionnel - Coeur)
+            if (uiState.showFavoriteButton) {
+                val isFav = uiState.currentAsset?.let { uiState.isFavorite(it.id) } ?: false
+                IconButton(
+                    onClick = { viewModel.toggleFavorite() },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isFav) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = stringResource(R.string.swipe_favorite),
+                        tint = if (isFav) Color.Red else MaterialTheme.colorScheme.onBackground
+                    )
+                }
+            }
+
+            // LOCK (Optionnel)
+            if (uiState.showLockButton) {
+                IconButton(
+                    onClick = { viewModel.toggleLock() },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(Icons.Default.Lock, contentDescription = stringResource(R.string.swipe_locked), tint = MaterialTheme.colorScheme.outline)
+                }
+            }
+
+            // SKIP
+            IconButton(
+                onClick = { viewModel.onSwipe(SwipeDecision.SKIP) },
+                modifier = Modifier.size(40.dp)
+            ) {
                 Icon(Icons.AutoMirrored.Filled.Forward, contentDescription = stringResource(R.string.swipe_skip))
             }
 
+            // BOUTON GARDER (KEEP)
             FloatingActionButton(
                 onClick = { viewModel.onSwipe(SwipeDecision.KEEP) },
                 containerColor = MaterialGreen,
                 contentColor = Color.White,
-                shape = CircleShape
+                shape = CircleShape,
+                modifier = Modifier.size(56.dp)
             ) {
                 Icon(Icons.Default.Check, contentDescription = stringResource(R.string.swipe_keep))
             }
@@ -443,7 +496,7 @@ fun SwipeHeader(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            StatBadge(label = stringResource(R.string.swipe_keep), count = uiState.keptCount, color = MaterialGreen)
+            StatBadge(label = stringResource(R.string.swipe_keep), count = uiState.allKeptCount, color = MaterialGreen)
             StatBadge(label = stringResource(R.string.swipe_delete), count = uiState.deletedCount, color = MaterialRed)
             StatBadge(label = stringResource(R.string.swipe_skip), count = uiState.skippedCount, color = Color.Gray)
             StatBadge(label = stringResource(R.string.swipe_remaining), count = uiState.remainingCount, color = MaterialTheme.colorScheme.outline)
@@ -474,6 +527,9 @@ fun AssetTimeline(
     assets: List<Asset>,
     decisions: Map<String, SwipeDecision>,
     currentIndex: Int,
+    isFavorite: (String) -> Boolean,
+    isArchived: (String) -> Boolean,
+    isLocked: (String) -> Boolean,
     onAssetClick: (Int) -> Unit
 ) {
     val listState = rememberLazyListState()
@@ -496,6 +552,9 @@ fun AssetTimeline(
         itemsIndexed(assets) { index, asset ->
             val decision = decisions[asset.id]
             val isCurrent = index == currentIndex
+            val hasHeart = isFavorite(asset.id)
+            val hasArchive = isArchived(asset.id)
+            val hasLock = isLocked(asset.id)
 
             Box(
                 modifier = Modifier
@@ -533,36 +592,75 @@ fun AssetTimeline(
                     )
                 }
 
-                if (decision != null) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(2.dp)
-                            .size(16.dp)
-                            .clip(CircleShape)
-                            .background(
-                                when (decision) {
-                                    SwipeDecision.KEEP -> MaterialGreen
-                                    SwipeDecision.DELETE -> MaterialRed
-                                    SwipeDecision.SKIP -> Color.Gray
-                                }
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = when (decision) {
-                                SwipeDecision.KEEP -> Icons.Default.Check
-                                SwipeDecision.DELETE -> Icons.Default.Delete
-                                SwipeDecision.SKIP -> Icons.AutoMirrored.Filled.Forward
-                            },
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(10.dp)
-                        )
+                // Conteneur de badges en haut à droite
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(2.dp),
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    if (decision != null) {
+                        Box(
+                            modifier = Modifier
+                                .size(16.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    when (decision) {
+                                        SwipeDecision.KEEP -> MaterialGreen
+                                        SwipeDecision.DELETE -> MaterialRed
+                                        SwipeDecision.SKIP -> Color.Gray
+                                        SwipeDecision.ARCHIVE -> MaterialTheme.colorScheme.primary
+                                        SwipeDecision.LOCK -> MaterialTheme.colorScheme.outline
+                                    }
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = when (decision) {
+                                    SwipeDecision.KEEP -> Icons.Default.Check
+                                    SwipeDecision.DELETE -> Icons.Default.Delete
+                                    SwipeDecision.SKIP -> Icons.AutoMirrored.Filled.Forward
+                                    SwipeDecision.ARCHIVE -> Icons.Default.Archive
+                                    SwipeDecision.LOCK -> Icons.Default.Lock
+                                },
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(10.dp)
+                            )
+                        }
+                    }
+
+                    if (hasHeart) {
+                        TimelineMiniBadge(Icons.Default.Favorite, Color.Red)
+                    }
+                    if (hasArchive && decision != SwipeDecision.ARCHIVE) {
+                        TimelineMiniBadge(Icons.Default.Archive, Color.Black)
+                    }
+                    if (hasLock && decision != SwipeDecision.LOCK) {
+                        TimelineMiniBadge(Icons.Default.Lock, Color.Black)
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun TimelineMiniBadge(icon: ImageVector, color: Color) {
+    Box(
+        modifier = Modifier
+            .size(16.dp)
+            .clip(CircleShape)
+            .background(Color.White.copy(alpha = 0.8f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(10.dp)
+        )
     }
 }
 
@@ -1164,39 +1262,42 @@ fun SummaryDialog(
                 
                 Spacer(Modifier.height(20.dp))
                 
-                // Grille de statistiques (2x2)
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        StatSummaryBox(
-                            label = stringResource(R.string.swipe_keep),
-                            count = uiState.keptCount,
-                            size = uiState.keptSize,
-                            color = Color(0xFF388E3C),
-                            modifier = Modifier.weight(1f)
-                        )
-                        StatSummaryBox(
-                            label = stringResource(R.string.swipe_delete),
-                            count = uiState.deletedCount,
-                            size = uiState.deletedSize,
-                            color = Color(0xFFD32F2F),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        StatSummaryBox(
-                            label = stringResource(R.string.swipe_skip),
-                            count = uiState.skippedCount,
-                            size = uiState.skippedSize,
-                            color = Color(0xFF757575),
-                            modifier = Modifier.weight(1f)
-                        )
-                        StatSummaryBox(
-                            label = stringResource(R.string.swipe_remaining),
-                            count = uiState.remainingCount,
-                            size = uiState.remainingSize,
-                            color = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.weight(1f)
-                        )
+                // Grille de statistiques (3x2) - Utilisation d'une grille fixe pour éviter l'étirement
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    val stats = listOf(
+                        Triple(stringResource(R.string.swipe_keep), Triple(uiState.keptCount, uiState.keptSize, MaterialGreen), Icons.Default.Check),
+                        Triple(stringResource(R.string.swipe_delete), Triple(uiState.deletedCount, uiState.deletedSize, MaterialRed), Icons.Default.Delete),
+                        Triple(stringResource(R.string.swipe_archive), Triple(uiState.archiveCount, uiState.archiveSize, MaterialTheme.colorScheme.primary), Icons.Default.Archive),
+                        Triple(stringResource(R.string.swipe_locked), Triple(uiState.lockedCount, uiState.lockedSize, MaterialTheme.colorScheme.outline), Icons.Default.Lock),
+                        Triple(stringResource(R.string.swipe_skip), Triple(uiState.skippedCount, uiState.skippedSize, Color.Gray), Icons.AutoMirrored.Filled.Forward),
+                        Triple(stringResource(R.string.swipe_remaining), Triple(uiState.remainingCount, uiState.remainingSize, MaterialTheme.colorScheme.outlineVariant), Icons.Default.Pending)
+                    )
+                    
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        for (i in 0 until 3) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                val left = stats[i * 2]
+                                val right = stats[i * 2 + 1]
+                                StatSummaryBox(
+                                    label = left.first,
+                                    count = left.second.first,
+                                    size = left.second.second,
+                                    color = left.second.third,
+                                    icon = left.third,
+                                    isEstimated = left.first == stringResource(R.string.swipe_remaining) && uiState.isRemainingEstimated,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                StatSummaryBox(
+                                    label = right.first,
+                                    count = right.second.first,
+                                    size = right.second.second,
+                                    color = right.second.third,
+                                    icon = right.third,
+                                    isEstimated = right.first == stringResource(R.string.swipe_remaining) && uiState.isRemainingEstimated,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -1229,6 +1330,7 @@ fun SummaryDialog(
                             ) { asset ->
                                 DeletedAssetThumbnail(
                                     asset = asset,
+                                    uiState = uiState,
                                     onUndo = { onUndoDecision(asset.id) },
                                     modifier = Modifier.animateItem()
                                 )
@@ -1261,10 +1363,14 @@ fun SummaryDialog(
             }
         },
         confirmButton = {
+            val totalToSync = uiState.processedCount // Tout ce qui a une décision + les favoris togglés?
+            // On veut confirmer la synchro si on a des décisions OU des favoris togglés
+            val hasChanges = uiState.processedCount > 0 || uiState.localFavorites.isNotEmpty()
+            
             Button(
                 onClick = onApply,
-                enabled = !uiState.isSyncing && uiState.deletedCount > 0,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
+                enabled = !uiState.isSyncing && hasChanges,
+                colors = ButtonDefaults.buttonColors(containerColor = if (uiState.deletedCount > 0) Color(0xFFD32F2F) else MaterialTheme.colorScheme.primary),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
             ) {
@@ -1285,36 +1391,45 @@ fun StatSummaryBox(
     count: Int,
     size: Long,
     color: Color,
+    icon: ImageVector,
+    isEstimated: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        color = color.copy(alpha = 0.08f),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.2f))
+        modifier = modifier.height(72.dp),
+        shape = RoundedCornerShape(12.dp),
+        color = color.copy(alpha = 0.12f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.25f))
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            horizontalAlignment = Alignment.Start
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = color,
-                fontWeight = FontWeight.Bold
+        Box(modifier = Modifier.padding(10.dp)) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color.copy(alpha = 0.35f),
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(24.dp)
             )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = count.toString(),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = formatSize(size),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Column(horizontalAlignment = Alignment.Start) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = color.copy(alpha = 0.9f),
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+                Text(
+                    text = count.toString(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = if (isEstimated) "~ ${formatSize(size)}" else formatSize(size),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                )
+            }
         }
     }
 }
@@ -1322,11 +1437,16 @@ fun StatSummaryBox(
 @Composable
 fun DeletedAssetThumbnail(
     asset: Asset,
+    uiState: SwipeUiState,
     onUndo: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val baseUrl = SessionManager.getBaseUrl()?.removeSuffix("/")
     val apiKey = SessionManager.getApiKey() ?: ""
+    
+    val hasHeart = uiState.isFavorite(asset.id)
+    val hasArchive = asset.isArchived
+    val hasLock = asset.isLocked
 
     Box(
         modifier = modifier
@@ -1343,6 +1463,18 @@ fun DeletedAssetThumbnail(
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
+
+        // Conteneur de badges en haut à gauche (comme timeline)
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(4.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            if (hasHeart) TimelineMiniBadge(Icons.Default.Favorite, Color.Red)
+            if (hasArchive) TimelineMiniBadge(Icons.Default.Archive, Color.Black)
+            if (hasLock) TimelineMiniBadge(Icons.Default.Lock, Color.Black)
+        }
         
         // Petit badge "Undo" discret en haut à droite
         Surface(

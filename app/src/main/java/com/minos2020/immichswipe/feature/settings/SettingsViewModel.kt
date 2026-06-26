@@ -81,6 +81,26 @@ class SettingsViewModel(
                 _uiState.value = _uiState.value.copy(skipLifespanDays = days)
             }
         }
+        viewModelScope.launch {
+            sessionRepository.showFavoriteButton.collect { show ->
+                _uiState.value = _uiState.value.copy(showFavoriteButton = show)
+            }
+        }
+        viewModelScope.launch {
+            sessionRepository.showArchiveButton.collect { show ->
+                _uiState.value = _uiState.value.copy(showArchiveButton = show)
+            }
+        }
+        viewModelScope.launch {
+            sessionRepository.showLockButton.collect { show ->
+                _uiState.value = _uiState.value.copy(showLockButton = show)
+            }
+        }
+        viewModelScope.launch {
+            sessionRepository.autoNextOnFav.collect { autoNextOnFav ->
+                _uiState.value = _uiState.value.copy(autoNextOnFav = autoNextOnFav)
+            }
+        }
     }
 
     fun setPlaybackBehavior(behavior: PlaybackBehavior) {
@@ -117,6 +137,22 @@ class SettingsViewModel(
         viewModelScope.launch {
             sessionRepository.saveDefaultLayoutGrid(isGrid)
         }
+    }
+
+    fun setShowFavorite(show: Boolean) {
+        viewModelScope.launch { sessionRepository.saveShowFavorite(show) }
+    }
+
+    fun setShowArchive(show: Boolean) {
+        viewModelScope.launch { sessionRepository.saveShowArchive(show) }
+    }
+
+    fun setShowLock(show: Boolean) {
+        viewModelScope.launch { sessionRepository.saveShowLock(show) }
+    }
+
+    fun setAutoNextOnFav(autoNextOnFav: Boolean) {
+        viewModelScope.launch { sessionRepository.saveAutoNextOnFav(autoNextOnFav) }
     }
 
     fun requestSkipLifespanChange(days: Long) {

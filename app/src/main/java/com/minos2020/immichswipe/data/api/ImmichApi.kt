@@ -8,6 +8,7 @@ import retrofit2.http.GET
 import retrofit2.http.HTTP
 import retrofit2.http.Path
 import retrofit2.http.POST
+import retrofit2.http.PUT
 
 interface ImmichApi {
 
@@ -33,7 +34,19 @@ interface ImmichApi {
      */
     @HTTP(method = "DELETE", path = "api/assets", hasBody = true)
     suspend fun deleteAssets(@Body request: DeleteAssetsRequest)
+
+    @PUT("api/assets")
+    suspend fun updateAssets(@Body request: UpdateAssetsRequest)
 }
+
+/**
+ * Corps de la requête pour mettre à jour des assets.
+ */
+data class UpdateAssetsRequest(
+    val ids: List<String>,
+    val isFavorite: Boolean? = null,
+    val visibility: String? = null // archive, timeline, hidden, locked
+)
 
 /**
  * Corps de la requête pour supprimer des assets.
