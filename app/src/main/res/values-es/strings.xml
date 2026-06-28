@@ -1,0 +1,134 @@
+<resources>
+    <string name="app_name">Immich Swipe</string>
+
+    <!-- Pantalla de inicio de sesión -->
+    <string name="login_url_label">URL del servidor</string>
+    <string name="login_url_placeholder">https://tu-instancia.com</string>
+    <string name="login_api_key_label">Clave API</string>
+    <string name="login_button">Iniciar sesión</string>
+    <string name="login_success">Sesión iniciada ✔</string>
+    <string name="login_error_unknown">Se ha producido un error desconocido</string>
+
+    <!-- Navegación -->
+    <string name="nav_home">Inicio</string>
+    <string name="nav_swipe">Swipe</string>
+    <string name="nav_settings">Ajustes</string>
+    <string name="nav_back">Atrás</string>
+
+    <!-- Pantalla de inicio -->
+    <string name="home_search_placeholder">Buscar un álbum…</string>
+    <string name="home_no_results">Ningún álbum coincide con tu búsqueda</string>
+    <string name="home_error_title">¡Vaya! Se ha producido un error</string>
+    <string name="home_retry_button">Reintentar</string>
+    <string name="home_status_in_progress">En curso</string>
+    <string name="home_status_not_started">Sin empezar</string>
+    <string name="home_status_completed">Completado</string>
+    <string name="home_album_completed">Completado</string>
+    <string name="home_unsynced_changes">Contiene %1$d eliminaciones sin sincronizar</string>
+    <string name="home_sorted_count">%1$d / %2$d ordenadas</string>
+    <string name="home_select_album">¡Selecciona un álbum para empezar!</string>
+    <string name="home_session_title">Sesión de ordenación: %1$s</string>
+    <string name="home_photos_to_discover">%1$d fotos por descubrir</string>
+    <string name="home_new_badge">NUEVO</string>
+    <string name="home_unsynced_badge">SIN SINCRONIZAR</string>
+    <string name="home_user_fallback">Usuario</string>
+
+    <!-- Ventana de perfil y diagnóstico -->
+    <string name="profile_connected_label">Conectado al servidor Immich</string>
+    <string name="profile_logout_button">Cerrar sesión</string>
+    <string name="profile_source_code">Código fuente</string>
+    <string name="diag_online">Servidor en línea</string>
+    <string name="diag_issues">Problemas detectados</string>
+    <string name="diag_offline">Servidor inaccesible</string>
+    <string name="diag_unknown">Estado desconocido</string>
+    <string name="diag_connected_msg">Conectado a Immich</string>
+    <string name="diag_error_auth">Problema de autenticación</string>
+    <string name="diag_error_auth_hint">Comprueba si tu clave API sigue siendo válida en los ajustes de Immich.</string>
+    <string name="diag_error_unavailable">API de Immich no disponible (%1$d)</string>
+    <string name="diag_error_unavailable_hint">Tu proxy inverso responde, pero el contenedor de Immich parece detenido o reiniciándose.</string>
+    <string name="diag_error_unexpected">Respuesta inesperada (%1$d)</string>
+    <string name="diag_error_dns">Servidor no encontrado (DNS)</string>
+    <string name="diag_error_dns_hint">La URL es incorrecta o tu dominio aún no se ha propagado.</string>
+    <string name="diag_error_timeout">Tiempo de espera agotado</string>
+    <string name="diag_error_timeout_hint">El servidor tarda demasiado en responder. Comprueba tu conexión o la carga del servidor.</string>
+    <string name="diag_error_no_internet">Sin conexión a internet</string>
+    <string name="diag_error_no_internet_hint">Comprueba que tu teléfono tenga cobertura de red o que tu servidor esté encendido.</string>
+    <string name="diag_error_connection">Error de conexión</string>
+    <string name="diag_logged_out">Sesión cerrada</string>
+
+    <!-- Ajustes -->
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_section_appearance">Apariencia</string>
+    <string name="settings_theme_label">Tema de la aplicación</string>
+    <string name="settings_theme_system">Sistema</string>
+    <string name="settings_theme_light">Claro</string>
+    <string name="settings_theme_dark">Oscuro</string>
+    <string name="settings_layout_label">Diseño predeterminado</string>
+    <string name="settings_layout_list">Lista</string>
+    <string name="settings_layout_grid">Cuadrícula</string>
+    <string name="settings_section_tri">Ordenación</string>
+    <string name="settings_skip_lifespan_label">Duración de SKIP</string>
+    <string name="settings_skip_lifespan_desc">Tras este plazo, las fotos \'omitidas\' vuelven a estar \'sin ordenar\' para reevaluarlas.</string>
+    <string name="settings_skip_never">SKIP nunca vuelve</string>
+    <string name="settings_skip_hint">Mayor precisión para duraciones cortas</string>
+    <string name="settings_skip_warning_title">Modificar duración de SKIP</string>
+    <string name="settings_skip_warning_msg">Al cambiar esta duración, algunas fotos que habías \'omitido\' podrían reaparecer de inmediato en tu cola de ordenación si superan el nuevo límite.</string>
+    <string name="settings_section_interaction">Interacción</string>
+    <string name="settings_swipe_invert_label">Invertir dirección del swipe</string>
+    <string name="settings_swipe_invert_desc">Izquierda para conservar, derecha para eliminar</string>
+    <string name="settings_fullscreen_pos_label">Posición del botón de pantalla completa</string>
+    <string name="settings_immich_pos_label">Posición del botón Abrir en Immich</string>
+    <string name="settings_video_behavior_label">Comportamiento del vídeo</string>
+    <string name="settings_video_behavior_desc">Gestiona la interacción con otros sonidos del dispositivo al reproducir un vídeo</string>
+    <string name="settings_video_pause">Pausar otros sonidos</string>
+    <string name="settings_video_ignore">Reproducir sobre otros sonidos</string>
+    <string name="settings_section_account">Cuenta</string>
+    <string name="settings_pos_top_left">Arriba a la izquierda</string>
+    <string name="settings_pos_top_right">Arriba a la derecha</string>
+    <string name="settings_pos_bottom_left">Abajo a la izquierda</string>
+    <string name="settings_pos_bottom_right">Abajo a la derecha</string>
+
+    <!-- Pantalla de swipe -->
+    <string name="swipe_keep">Conservar</string>
+    <string name="swipe_keep_upper">CONSERVAR</string>
+    <string name="swipe_delete">Eliminar</string>
+    <string name="swipe_delete_upper">ELIMINAR</string>
+    <string name="swipe_skip">Omitir</string>
+    <string name="swipe_remaining">Restantes</string>
+    <string name="swipe_summary_title">Resumen de ordenación</string>
+    <string name="swipe_sync_success">¡Sincronizado!</string>
+    <string name="swipe_sync_success_desc">Tus cambios están en Immich</string>
+    <string name="swipe_liberate_button">Liberar %1$s (%2$d elementos)</string>
+    <string name="swipe_no_deletions">No hay fotos para eliminar.</string>
+    <string name="swipe_metadata_title">Detalles de la imagen</string>
+    <string name="swipe_metadata_file">Archivo</string>
+    <string name="swipe_metadata_date">Fecha</string>
+    <string name="swipe_metadata_format">Formato</string>
+    <string name="swipe_metadata_size">Tamaño</string>
+    <string name="swipe_metadata_resolution">Resolución</string>
+    <string name="swipe_loading">Cargando…</string>
+    <string name="swipe_syncing">Sincronizando…</string>
+    <string name="swipe_congratulations">¡Enhorabuena! Álbum ordenado.</string>
+    <string name="swipe_check_before_delete">Revisar antes de eliminar</string>
+
+    <!-- Duraciones -->
+    <string name="duration_never">Nunca</string>
+    <string name="duration_day">%1$d d</string>
+    <string name="duration_week">%1$d sem</string>
+    <string name="duration_month">%1$d mes</string>
+    <string name="duration_year_one">1 año</string>
+    <string name="duration_years">%1$d años</string>
+
+    <!-- Unidades de tamaño -->
+    <string name="size_unit_gb">%1$.2f GB</string>
+    <string name="size_unit_mb">%1$.2f MB</string>
+    <string name="size_unit_kb">%1$.0f KB</string>
+
+    <!-- Común -->
+    <string name="common_confirm">Confirmar</string>
+    <string name="common_cancel">Cancelar</string>
+    <string name="common_apply">Aplicar</string>
+    <string name="common_retry">Reintentar</string>
+    <string name="common_close">Cerrar</string>
+    <string name="common_loading">Cargando…</string>
+</resources>
