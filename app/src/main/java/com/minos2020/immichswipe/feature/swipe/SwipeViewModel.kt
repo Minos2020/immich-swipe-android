@@ -153,7 +153,8 @@ class SwipeViewModel(
                     }
 
                     // On ne met dans l'état de l'UI (Timeline/Pile) que ce qui n'est PAS synchronisé
-                    if (!entity.isSynced) {
+                    // Note: on traite les anciens SKIP comme synchronisés pour les sortir de la pile
+                    if (!entity.isSynced && decision != SwipeDecision.SKIP) {
                         decisionMap[entity.assetId] = decision
                         entity.fileSize?.let { sizeMap[entity.assetId] = it }
                     }
@@ -161,8 +162,11 @@ class SwipeViewModel(
 
                 // Filtrage de la liste des assets pour ne garder que la pile de travail
                 // Pile de travail = Assets sans décision OU Assets avec décision NON synchronisée
-                val syncedIds = localDecisions.filter { it.isSynced }.map { it.assetId }.toSet()
-                val workPileAssets = assets.filter { !syncedIds.contains(it.id) }
+                // Note: On exclut aussi les SKIP (même si pas encore synced en base suite à ancienne version)
+                val syncedOrSkippedIds = localDecisions
+                    .filter { it.isSynced || it.decision == "SKIP" }
+                    .map { it.assetId }.toSet()
+                val workPileAssets = assets.filter { !syncedOrSkippedIds.contains(it.id) }
 
                 // NETTOYAGE : Si on a des décisions locales pour des assets qui n'existent plus
                 // dans cet album sur le serveur, on les supprime.
@@ -239,7 +243,8 @@ class SwipeViewModel(
                 assetId = currentAsset.id,
                 albumId = album.id,
                 decision = decision.name,
-                fileSize = currentSize
+                fileSize = currentSize,
+                isSynced = decision == SwipeDecision.SKIP // Le SKIP est considéré synchronisé immédiatement (local)
             )
         }
 

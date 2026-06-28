@@ -22,14 +22,14 @@ class SwipeDecisionRepository(
     /**
      * Enregistre un nouveau swipe en base locale.
      */
-    suspend fun saveDecision(assetId: String, albumId: String, decision: String, fileSize: Long? = null) {
+    suspend fun saveDecision(assetId: String, albumId: String, decision: String, fileSize: Long? = null, isSynced: Boolean = false) {
         val entity = SwipeDecisionEntity(
             assetId = assetId,
             albumId = albumId,
             decision = decision,
             fileSize = fileSize,
             createdAt = System.currentTimeMillis(),
-            isSynced = false
+            isSynced = isSynced
         )
         swipeDecisionDao.insertDecision(entity)
     }
