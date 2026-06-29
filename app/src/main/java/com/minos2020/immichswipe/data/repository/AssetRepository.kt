@@ -22,7 +22,7 @@ class AssetRepository(
     /**
      * Récupère toutes les photos d'un album.
      */
-    suspend fun getAssetsByAlbum(albumId: String): List<Asset> {
+    suspend fun getAssetsByAlbum(albumId: String, includeArchived: Boolean = false): List<Asset> {
         if (albumId == Album.VIRTUAL_SKIPPED_ID && swipeDecisionDao != null) {
             // Album virtuel : On récupère les IDs depuis la base locale
             val skippedDecisions = swipeDecisionDao.getSyncedSkipDecisions().first()
@@ -42,8 +42,24 @@ class AssetRepository(
             }
         }
 
-        val request = SearchAssetsRequest(albumIds = listOf(albumId))
-        return api.searchAssets(request).assets.items
+        return if (includeArchived) {
+            coroutineScope {
+                val timelineDeferred = async { 
+                    api.searchAssets(SearchAssetsRequest(albumIds = listOf(albumId), visibility = "timeline")) 
+                }
+                val archiveDeferred = async { 
+                    api.searchAssets(SearchAssetsRequest(albumIds = listOf(albumId), visibility = "archive")) 
+                }
+                
+                val timeline = try { timelineDeferred.await().assets.items } catch (_: Exception) { emptyList() }
+                val archive = try { archiveDeferred.await().assets.items } catch (_: Exception) { emptyList() }
+                
+                (timeline + archive).sortedByDescending { it.fileCreatedAt }
+            }
+        } else {
+            val request = SearchAssetsRequest(albumIds = listOf(albumId), visibility = "timeline")
+            api.searchAssets(request).assets.items
+        }
     }
 
     /**

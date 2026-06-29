@@ -32,6 +32,15 @@ class SwipeViewModel(
         observeSkipLifespan()
         observeButtonVisibility()
         observeAutoNextOnFav()
+        observeIncludeArchived()
+    }
+
+    private fun observeIncludeArchived() {
+        viewModelScope.launch {
+            sessionRepository.includeArchived.collect { include ->
+                _uiState.value = _uiState.value.copy(includeArchived = include)
+            }
+        }
     }
 
     private fun observeAutoNextOnFav() {
@@ -118,8 +127,10 @@ class SwipeViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
+                val includeArchived = sessionRepository.includeArchived.first()
+
                 // On charge les assets depuis l'API
-                val assets = assetRepository.getAssetsByAlbum(album.id)
+                val assets = assetRepository.getAssetsByAlbum(album.id, includeArchived)
                 
                 // On charge les décisions locales déjà prises pour cet album
                 // On utilise first() pour avoir une photo à l'instant T sans observer en continu ici

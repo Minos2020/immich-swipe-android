@@ -25,6 +25,9 @@ interface ImmichApi {
     @POST("api/search/metadata")
     suspend fun searchAssets(@Body request: SearchAssetsRequest): SearchResponse
 
+    @POST("api/search/statistics")
+    suspend fun getSearchStatistics(@Body request: SearchAssetsRequest): SearchStatisticsResponse
+
     @GET("api/assets/{id}")
     suspend fun getAssetDetail(@Path("id") assetId: String): Asset
 
@@ -63,10 +66,15 @@ data class DeleteAssetsRequest(
 data class SearchAssetsRequest(
     val albumIds: List<String>? = null,
     val size: Int = 1000, //pour éviter les histoires de pagination pour l'instant
+    val visibility: String? = null // archive, timeline, hidden, locked
 )
 
 data class SearchResponse(
     val assets: SearchAssetResult
+)
+
+data class SearchStatisticsResponse(
+    val total: Int
 )
 
 /**

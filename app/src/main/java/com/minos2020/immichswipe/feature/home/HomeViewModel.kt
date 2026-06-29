@@ -51,6 +51,14 @@ class HomeViewModel(
             }
         }
 
+        viewModelScope.launch {
+            sessionRepository.includeArchived.collect { include ->
+                _uiState.update { it.copy(includeArchived = include) }
+                // On rafraîchit les albums si cette option change car les comptes vont changer
+                refreshAlbums()
+            }
+        }
+
         // Applique le mode d'affichage par défaut au démarrage
         viewModelScope.launch {
             val isGrid = sessionRepository.defaultLayoutGrid.first()
@@ -93,7 +101,7 @@ class HomeViewModel(
             _uiState.update { it.copy(isLoading = true) }
             try {
                 val user = userRepository.getCurrentUser()
-                val albums = albumRepository.refreshAlbums()
+                val albums = albumRepository.refreshAlbums(_uiState.value.includeArchived)
                 _uiState.update { 
                     it.copy(
                         user = user, 
@@ -121,7 +129,7 @@ class HomeViewModel(
                 val startTime = System.currentTimeMillis()
                 
                 // On lance la requête
-                val albums = albumRepository.refreshAlbums()
+                val albums = albumRepository.refreshAlbums(_uiState.value.includeArchived)
                 
                 // On calcule combien de temps a duré la requête
                 val duration = System.currentTimeMillis() - startTime

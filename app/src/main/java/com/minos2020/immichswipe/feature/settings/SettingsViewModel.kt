@@ -101,6 +101,11 @@ class SettingsViewModel(
                 _uiState.value = _uiState.value.copy(autoNextOnFav = autoNextOnFav)
             }
         }
+        viewModelScope.launch {
+            sessionRepository.includeArchived.collect { include ->
+                _uiState.value = _uiState.value.copy(includeArchived = include)
+            }
+        }
     }
 
     fun setPlaybackBehavior(behavior: PlaybackBehavior) {
@@ -153,6 +158,10 @@ class SettingsViewModel(
 
     fun setAutoNextOnFav(autoNextOnFav: Boolean) {
         viewModelScope.launch { sessionRepository.saveAutoNextOnFav(autoNextOnFav) }
+    }
+
+    fun setIncludeArchived(include: Boolean) {
+        viewModelScope.launch { sessionRepository.saveIncludeArchived(include) }
     }
 
     fun requestSkipLifespanChange(days: Long) {

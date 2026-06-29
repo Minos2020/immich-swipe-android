@@ -118,6 +118,22 @@ fun SettingsScreen(
             // SECTION TRI
             SettingsSection(title = stringResource(R.string.settings_section_tri), icon = Icons.AutoMirrored.Filled.Sort) {
                 Column(modifier = Modifier.padding(16.dp)) {
+                    // Option inclure archives (Nouveau)
+                    SettingsToggleItemSmall(
+                        title = stringResource(R.string.settings_include_archived_label),
+                        checked = uiState.includeArchived,
+                        onCheckedChange = { viewModel.setIncludeArchived(it) },
+                        icon = Icons.Default.Inventory2 // Icône évocatrice pour archives
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_include_archived_desc),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(start = 40.dp, end = 16.dp, bottom = 16.dp)
+                    )
+
+                    HorizontalDivider(modifier = Modifier.padding(bottom = 16.dp), thickness = 0.5.dp)
+
                     Text(
                         text = stringResource(R.string.settings_skip_lifespan_label),
                         style = MaterialTheme.typography.titleSmall,

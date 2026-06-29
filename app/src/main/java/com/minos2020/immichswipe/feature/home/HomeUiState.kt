@@ -36,6 +36,7 @@ data class HomeUiState(
     val searchQuery: String = "", // Texte de recherche pour filtrer les albums
     val connectionStatus: ConnectionStatus = ConnectionStatus(),
     val syncedSkipCount: Int = 0, // Nombre de SKIP synchronisés pour l'album virtuel
+    val includeArchived: Boolean = false, // Inclure ou non les archives externes
     val virtualNames: Map<String, String> = emptyMap(), // Noms localisés des albums virtuels
     val virtualDescriptions: Map<String, String> = emptyMap() // Descriptions localisées
 ) {
