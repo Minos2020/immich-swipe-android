@@ -747,21 +747,6 @@ fun AlbumGridItem(album: Album, treatedCount: Int, unsyncedCount: Int, onClick: 
                         modifier = Modifier.padding(4.dp).size(16.dp)
                     )
                 }
-            } else if (isNotStarted) {
-                Surface(
-                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
-                    color = MaterialTheme.colorScheme.tertiary,
-                    shape = RoundedCornerShape(4.dp),
-                    shadowElevation = 4.dp
-                ) {
-                    Text(
-                        text = stringResource(R.string.home_new_badge),
-                        color = MaterialTheme.colorScheme.onTertiary,
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Black,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
-                }
             }
 
             // Contenu texte
