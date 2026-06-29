@@ -893,86 +893,34 @@ fun SwipeCard(
                     )
                 }
 
-                // Bouton Plein Écran
+                // Boutons d'action (Plein écran et Immich)
                 if (!isNext) {
-                    // Zone pour les boutons d'action (Plein écran et Immich)
-                    // Si les deux sont au même endroit, on les met dans une Column
-                    val samePosition = fullscreenButtonPosition == immichButtonPosition
-                    if (samePosition) {
-                        val stackAlignment = when (fullscreenButtonPosition) {
-                            IconPosition.TOP_LEFT -> Alignment.TopStart
-                            IconPosition.TOP_RIGHT -> Alignment.TopEnd
-                            IconPosition.BOTTOM_LEFT -> Alignment.BottomStart
-                            IconPosition.BOTTOM_RIGHT -> Alignment.BottomEnd
-                        }
+                    val distinctPositions = listOf(fullscreenButtonPosition, immichButtonPosition).distinct()
+                    distinctPositions.forEach { position ->
                         Column(
                             modifier = Modifier
-                                .align(stackAlignment)
+                                .align(position.toAlignment())
                                 .padding(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
-                            horizontalAlignment = when (fullscreenButtonPosition) {
-                                IconPosition.TOP_LEFT, IconPosition.BOTTOM_LEFT -> Alignment.Start
-                                else -> Alignment.End
-                            }
+                            horizontalAlignment = position.toHorizontalAlignment()
                         ) {
-                            IconButton(
-                                onClick = { isFullscreenOpen = true },
-                                modifier = Modifier.background(Color.Black.copy(alpha = 0.3f), CircleShape)
-                            ) {
-                                Icon(Icons.Default.Fullscreen, stringResource(R.string.settings_fullscreen_pos_label), tint = Color.White)
-                            }
-                            IconButton(
-                                onClick = {
-                                    val intent = Intent(Intent.ACTION_VIEW, "$baseUrl/photos/${asset.id}".toUri())
-                                    context.startActivity(intent)
-                                },
-                                modifier = Modifier.background(Color.Black.copy(alpha = 0.3f), CircleShape)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                                    contentDescription = stringResource(R.string.settings_immich_pos_label),
-                                    tint = Color.White
+                            if (fullscreenButtonPosition == position) {
+                                SwipeActionIconButton(
+                                    icon = Icons.Default.Fullscreen,
+                                    contentDescription = stringResource(R.string.settings_fullscreen_pos_label),
+                                    onClick = { isFullscreenOpen = true }
                                 )
                             }
-                        }
-                    } else {
-                        // Positions différentes, comportement standard
-                        val fullscreenAlignment = when (fullscreenButtonPosition) {
-                            IconPosition.TOP_LEFT -> Alignment.TopStart
-                            IconPosition.TOP_RIGHT -> Alignment.TopEnd
-                            IconPosition.BOTTOM_LEFT -> Alignment.BottomStart
-                            IconPosition.BOTTOM_RIGHT -> Alignment.BottomEnd
-                        }
-                        IconButton(
-                            onClick = { isFullscreenOpen = true },
-                            modifier = Modifier
-                                .align(fullscreenAlignment)
-                                .padding(8.dp)
-                                .background(Color.Black.copy(alpha = 0.3f), CircleShape)
-                        ) {
-                            Icon(Icons.Default.Fullscreen, stringResource(R.string.settings_fullscreen_pos_label), tint = Color.White)
-                        }
-                        val immichButtonAlignment = when (immichButtonPosition) {
-                            IconPosition.TOP_LEFT -> Alignment.TopStart
-                            IconPosition.TOP_RIGHT -> Alignment.TopEnd
-                            IconPosition.BOTTOM_LEFT -> Alignment.BottomStart
-                            IconPosition.BOTTOM_RIGHT -> Alignment.BottomEnd
-                        }
-                        IconButton(
-                            onClick = {
-                                val intent = Intent(Intent.ACTION_VIEW, "$baseUrl/photos/${asset.id}".toUri())
-                                context.startActivity(intent)
-                            },
-                            modifier = Modifier
-                                .align(immichButtonAlignment)
-                                .padding(8.dp)
-                                .background(Color.Black.copy(alpha = 0.3f), CircleShape)
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                                contentDescription = stringResource(R.string.settings_immich_pos_label),
-                                tint = Color.White
-                            )
+                            if (immichButtonPosition == position) {
+                                SwipeActionIconButton(
+                                    icon = Icons.AutoMirrored.Filled.OpenInNew,
+                                    contentDescription = stringResource(R.string.settings_immich_pos_label),
+                                    onClick = {
+                                        val intent = Intent(Intent.ACTION_VIEW, "$baseUrl/photos/${asset.id}".toUri())
+                                        context.startActivity(intent)
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -1523,6 +1471,33 @@ fun DeletedAssetThumbnail(
                 )
             }
         }
+    }
+}
+
+private fun IconPosition.toAlignment(): Alignment = when (this) {
+    IconPosition.TOP_LEFT -> Alignment.TopStart
+    IconPosition.TOP_RIGHT -> Alignment.TopEnd
+    IconPosition.BOTTOM_LEFT -> Alignment.BottomStart
+    IconPosition.BOTTOM_RIGHT -> Alignment.BottomEnd
+}
+
+private fun IconPosition.toHorizontalAlignment(): Alignment.Horizontal = when (this) {
+    IconPosition.TOP_LEFT, IconPosition.BOTTOM_LEFT -> Alignment.Start
+    else -> Alignment.End
+}
+
+@Composable
+private fun SwipeActionIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = modifier.background(Color.Black.copy(alpha = 0.3f), CircleShape)
+    ) {
+        Icon(icon, contentDescription, tint = Color.White)
     }
 }
 
