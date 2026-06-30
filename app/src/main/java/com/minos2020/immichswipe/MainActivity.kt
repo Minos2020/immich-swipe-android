@@ -92,12 +92,20 @@ class MainActivity : ComponentActivity() {
 
                             targetState.isLoggedIn -> {
                                 val api = SessionManager.api
-                                if (api != null) {
-                                    val albumRepository = remember(api) { AlbumRepository(api) }
-                                    val assetRepository = remember(api) { AssetRepository(api, database.swipeDecisionDao()) }
+                                val baseUrl = SessionManager.getBaseUrl()
+                                val apiKey = SessionManager.getApiKey()
+                                
+                                if (api != null && baseUrl != null && apiKey != null) {
+                                    // On utilise l'URL + Clé API comme clé de mémorisation pour forcer
+                                    // le rafraîchissement si l'utilisateur change (même serveur, autre clé).
+                                    val sessionKey = "$baseUrl-$apiKey"
+                                    
+                                    val albumRepository = remember(sessionKey) { AlbumRepository(api) }
+                                    val assetRepository = remember(sessionKey) { AssetRepository(api, database.swipeDecisionDao()) }
 
                                     HomeScreen(
                                         viewModel = viewModel(
+                                            key = sessionKey,
                                             factory = HomeViewModelFactory(
                                                 sessionRepository, 
                                                 albumRepository, 
