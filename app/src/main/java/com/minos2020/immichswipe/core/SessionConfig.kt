@@ -2,7 +2,8 @@ package com.minos2020.immichswipe.core
 
 data class SessionConfig(
     val baseUrl: String,
-    val apiKey: String
+    val apiKey: String,
+    val userId: String = ""
 )
 
 /**

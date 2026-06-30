@@ -24,10 +24,11 @@ class SessionRepository(context: Context) {
      */
     val sessionConfig: Flow<SessionConfig?> = combine(
         dataStore.getBaseUrl(),
-        dataStore.getApiKey()
-    ) { url, key ->
-        if (url != null && key != null) {
-            SessionConfig(url, key)
+        dataStore.getApiKey(),
+        dataStore.getUserId()
+    ) { url, key, userId ->
+        if (url != null && key != null && userId != null) {
+            SessionConfig(url, key, userId)
         } else {
             null
         }
@@ -94,8 +95,8 @@ class SessionRepository(context: Context) {
      * Sauvegarde une nouvelle session. 
      * Grâce au Flow ci-dessus, tous les observateurs seront notifiés automatiquement.
      */
-    suspend fun saveSession(baseUrl: String, token: String) {
-        dataStore.saveSession(baseUrl, token)
+    suspend fun saveSession(baseUrl: String, token: String, userId: String) {
+        dataStore.saveSession(baseUrl, token, userId)
     }
 
     /**

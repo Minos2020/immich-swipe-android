@@ -22,86 +22,91 @@ interface SwipeDecisionDao {
     suspend fun insertDecision(decision: SwipeDecisionEntity)
 
     /**
-     * Récupère toutes les décisions pour un album spécifique.
+     * Récupère toutes les décisions pour un album spécifique d'un utilisateur donné.
      * On utilise un Flow pour être notifié automatiquement dès que la base change.
      */
-    @Query("SELECT * FROM swipe_decisions WHERE albumId = :albumId")
-    fun getDecisionsForAlbum(albumId: String): Flow<List<SwipeDecisionEntity>>
+    @Query("SELECT * FROM swipe_decisions WHERE albumId = :albumId AND userId = :userId")
+    fun getDecisionsForAlbum(albumId: String, userId: String): Flow<List<SwipeDecisionEntity>>
 
     /**
-     * Récupère une décision spécifique pour un asset dans un album donné.
+     * Récupère une décision spécifique pour un asset dans un album donné pour un utilisateur.
      */
-    @Query("SELECT * FROM swipe_decisions WHERE assetId = :assetId AND albumId = :albumId")
-    suspend fun getDecisionForAsset(assetId: String, albumId: String): SwipeDecisionEntity?
+    @Query("SELECT * FROM swipe_decisions WHERE assetId = :assetId AND albumId = :albumId AND userId = :userId")
+    suspend fun getDecisionForAsset(assetId: String, albumId: String, userId: String): SwipeDecisionEntity?
 
     /**
-     * Supprime toutes les décisions d'un album (par exemple après une synchro réussie).
+     * Supprime toutes les décisions d'un album pour un utilisateur.
      */
-    @Query("DELETE FROM swipe_decisions WHERE albumId = :albumId")
-    suspend fun deleteDecisionsForAlbum(albumId: String)
+    @Query("DELETE FROM swipe_decisions WHERE albumId = :albumId AND userId = :userId")
+    suspend fun deleteDecisionsForAlbum(albumId: String, userId: String)
     
     /**
-     * Supprime une décision spécifique pour un asset dans un album donné.
+     * Supprime une décision spécifique pour un asset dans un album donné pour un utilisateur.
      */
-    @Query("DELETE FROM swipe_decisions WHERE assetId = :assetId AND albumId = :albumId")
-    suspend fun deleteDecision(assetId: String, albumId: String)
+    @Query("DELETE FROM swipe_decisions WHERE assetId = :assetId AND albumId = :albumId AND userId = :userId")
+    suspend fun deleteDecision(assetId: String, albumId: String, userId: String)
 
     /**
-     * Supprime plusieurs décisions d'un coup pour un album donné.
+     * Supprime plusieurs décisions d'un coup pour un album donné pour un utilisateur.
      */
-    @Query("DELETE FROM swipe_decisions WHERE assetId IN (:assetIds) AND albumId = :albumId")
-    suspend fun deleteDecisions(assetIds: List<String>, albumId: String)
+    @Query("DELETE FROM swipe_decisions WHERE assetId IN (:assetIds) AND albumId = :albumId AND userId = :userId")
+    suspend fun deleteDecisions(assetIds: List<String>, albumId: String, userId: String)
 
     /**
-     * Supprime toutes les décisions liées à une liste d'assets spécifique, peu importe l'album.
-     * Utile quand les assets sont définitivement supprimés du serveur Immich.
+     * Supprime toutes les décisions liées à une liste d'assets spécifique pour un utilisateur.
      */
-    @Query("DELETE FROM swipe_decisions WHERE assetId IN (:assetIds)")
-    suspend fun deleteDecisionsForAllAlbums(assetIds: List<String>)
+    @Query("DELETE FROM swipe_decisions WHERE assetId IN (:assetIds) AND userId = :userId")
+    suspend fun deleteDecisionsForAllAlbums(assetIds: List<String>, userId: String)
     
     /**
-     * Compte le nombre de décisions prises pour un album spécifique.
+     * Compte le nombre de décisions prises pour un album spécifique d'un utilisateur.
      */
-    @Query("SELECT COUNT(*) FROM swipe_decisions WHERE albumId = :albumId")
-    suspend fun getDecisionCountForAlbum(albumId: String): Int
+    @Query("SELECT COUNT(*) FROM swipe_decisions WHERE albumId = :albumId AND userId = :userId")
+    suspend fun getDecisionCountForAlbum(albumId: String, userId: String): Int
 
     /**
-     * Marque des décisions comme synchronisées.
+     * Marque des décisions comme synchronisées pour un utilisateur.
      */
-    @Query("UPDATE swipe_decisions SET isSynced = 1 WHERE assetId IN (:assetIds)")
-    suspend fun markAsSynced(assetIds: List<String>)
+    @Query("UPDATE swipe_decisions SET isSynced = 1 WHERE assetId IN (:assetIds) AND userId = :userId")
+    suspend fun markAsSynced(assetIds: List<String>, userId: String)
 
     /**
-     * Supprime les décisions 'SKIP' NON SYNCHRONISÉES plus vieilles qu'un certain timestamp.
-     * Les SKIP synchronisés restent en base pour permettre le review dans l'album virtuel.
+     * Supprime les décisions 'SKIP' NON SYNCHRONISÉES plus vieilles qu'un certain timestamp pour tous les utilisateurs.
+     * (Ou on pourrait filtrer par utilisateur, mais le nettoyage global est souvent plus simple).
      */
     @Query("DELETE FROM swipe_decisions WHERE decision = 'SKIP' AND isSynced = 0 AND createdAt < :threshold")
     suspend fun deleteExpiredSkips(threshold: Long)
 
     /**
-     * Récupère toutes les décisions 'SKIP' déjà synchronisées.
+     * Récupère toutes les décisions 'SKIP' déjà synchronisées pour un utilisateur.
      */
-    @Query("SELECT * FROM swipe_decisions WHERE decision = 'SKIP' AND isSynced = 1")
-    fun getSyncedSkipDecisions(): Flow<List<SwipeDecisionEntity>>
+    @Query("SELECT * FROM swipe_decisions WHERE decision = 'SKIP' AND isSynced = 1 AND userId = :userId")
+    fun getSyncedSkipDecisions(userId: String): Flow<List<SwipeDecisionEntity>>
 
     /**
-     * Compte le nombre de décisions 'SKIP' synchronisées.
+     * Compte le nombre de décisions 'SKIP' synchronisées pour un utilisateur.
      */
-    @Query("SELECT COUNT(*) FROM swipe_decisions WHERE decision = 'SKIP' AND isSynced = 1")
-    fun getSyncedSkipCount(): Flow<Int>
+    @Query("SELECT COUNT(*) FROM swipe_decisions WHERE decision = 'SKIP' AND isSynced = 1 AND userId = :userId")
+    fun getSyncedSkipCount(userId: String): Flow<Int>
 
     /**
-     * Récupère les statistiques de décisions pour tous les albums sous forme de Flow.
-     * On compte le total et spécifiquement les demandes de suppression.
+     * Migre les données d'une version précédente (sans userId) vers l'utilisateur actuel.
+     */
+    @Query("UPDATE swipe_decisions SET userId = :userId WHERE userId = 'legacy_user'")
+    suspend fun migrateLegacyData(userId: String)
+
+    /**
+     * Récupère les statistiques de décisions pour tous les albums d'un utilisateur sous forme de Flow.
      */
     @Query("""
         SELECT albumId, 
                COUNT(*) as totalCount, 
                SUM(CASE WHEN isSynced = 0 THEN 1 ELSE 0 END) as unsyncedCount 
         FROM swipe_decisions 
+        WHERE userId = :userId
         GROUP BY albumId
     """)
-    fun getAllAlbumDecisionCounts(): Flow<List<AlbumDecisionCount>>
+    fun getAllAlbumDecisionCounts(userId: String): Flow<List<AlbumDecisionCount>>
 }
 
 /**

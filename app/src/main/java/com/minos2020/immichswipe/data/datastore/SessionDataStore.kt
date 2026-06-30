@@ -15,6 +15,7 @@ class SessionDataStore(private val context: Context) {
     companion object {
         private val KEY_BASE_URL = stringPreferencesKey("base_url")
         private val KEY_API_KEY = stringPreferencesKey("api_key")
+        private val KEY_USER_ID = stringPreferencesKey("user_id")
         private val KEY_AUDIO_FOCUS = stringPreferencesKey("audio_focus")
         private val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
         private val KEY_SWIPE_INVERTED = androidx.datastore.preferences.core.booleanPreferencesKey("swipe_inverted")
@@ -31,10 +32,11 @@ class SessionDataStore(private val context: Context) {
         private val KEY_TOTAL_ASSETS_DELETED = androidx.datastore.preferences.core.intPreferencesKey("total_assets_deleted")
     }
 
-    suspend fun saveSession(baseUrl: String, apiKey: String) {
+    suspend fun saveSession(baseUrl: String, apiKey: String, userId: String) {
         context.dataStore.edit { prefs ->
             prefs[KEY_BASE_URL] = baseUrl
             prefs[KEY_API_KEY] = apiKey
+            prefs[KEY_USER_ID] = userId
         }
     }
 
@@ -44,6 +46,10 @@ class SessionDataStore(private val context: Context) {
 
     fun getApiKey(): Flow<String?> {
         return context.dataStore.data.map { it[KEY_API_KEY] }
+    }
+
+    fun getUserId(): Flow<String?> {
+        return context.dataStore.data.map { it[KEY_USER_ID] }
     }
 
     fun getAudioFocusMode(): Flow<String?> {

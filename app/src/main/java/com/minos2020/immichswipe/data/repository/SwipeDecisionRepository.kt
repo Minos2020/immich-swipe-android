@@ -13,19 +13,20 @@ class SwipeDecisionRepository(
     private val swipeDecisionDao: SwipeDecisionDao
 ) {
     /**
-     * Observe le compte des décisions pour tous les albums.
+     * Observe le compte des décisions pour tous les albums d'un utilisateur.
      */
-    fun getAllAlbumDecisionCounts(): Flow<List<AlbumDecisionCount>> {
-        return swipeDecisionDao.getAllAlbumDecisionCounts()
+    fun getAllAlbumDecisionCounts(userId: String): Flow<List<AlbumDecisionCount>> {
+        return swipeDecisionDao.getAllAlbumDecisionCounts(userId)
     }
 
     /**
      * Enregistre un nouveau swipe en base locale.
      */
-    suspend fun saveDecision(assetId: String, albumId: String, decision: String, fileSize: Long? = null, isSynced: Boolean = false) {
+    suspend fun saveDecision(assetId: String, albumId: String, userId: String, decision: String, fileSize: Long? = null, isSynced: Boolean = false) {
         val entity = SwipeDecisionEntity(
             assetId = assetId,
             albumId = albumId,
+            userId = userId,
             decision = decision,
             fileSize = fileSize,
             createdAt = System.currentTimeMillis(),
@@ -35,62 +36,68 @@ class SwipeDecisionRepository(
     }
 
     /**
-     * Marque plusieurs assets comme synchronisés.
+     * Marque plusieurs assets comme synchronisés pour un utilisateur.
      */
-    suspend fun markAsSynced(assetIds: List<String>) {
+    suspend fun markAsSynced(assetIds: List<String>, userId: String) {
         if (assetIds.isNotEmpty()) {
-            swipeDecisionDao.markAsSynced(assetIds)
+            swipeDecisionDao.markAsSynced(assetIds, userId)
         }
     }
 
     /**
-     * Récupère toutes les décisions d'un album sous forme de Flow.
+     * Récupère toutes les décisions d'un album pour un utilisateur sous forme de Flow.
      */
-    fun getDecisionsForAlbum(albumId: String): Flow<List<SwipeDecisionEntity>> {
-        return swipeDecisionDao.getDecisionsForAlbum(albumId)
+    fun getDecisionsForAlbum(albumId: String, userId: String): Flow<List<SwipeDecisionEntity>> {
+        return swipeDecisionDao.getDecisionsForAlbum(albumId, userId)
     }
 
     /**
      * Supprime une décision (si l'utilisateur veut annuler un swipe par exemple).
      */
-    suspend fun removeDecision(assetId: String, albumId: String) {
-        swipeDecisionDao.deleteDecision(assetId, albumId)
+    suspend fun removeDecision(assetId: String, albumId: String, userId: String) {
+        swipeDecisionDao.deleteDecision(assetId, albumId, userId)
     }
 
     /**
      * Supprime plusieurs décisions d'un coup pour un album donné.
      */
-    suspend fun removeDecisions(assetIds: List<String>, albumId: String) {
-        swipeDecisionDao.deleteDecisions(assetIds, albumId)
+    suspend fun removeDecisions(assetIds: List<String>, albumId: String, userId: String) {
+        swipeDecisionDao.deleteDecisions(assetIds, albumId, userId)
     }
 
     /**
-     * Supprime toutes les décisions pour une liste d'assets, sur TOUS les albums.
-     * À utiliser après une synchronisation réussie (suppression réelle sur Immich).
+     * Supprime toutes les décisions liées à une liste d'assets spécifique, pour un utilisateur.
      */
-    suspend fun removeDecisionsFromAllAlbums(assetIds: List<String>) {
-        swipeDecisionDao.deleteDecisionsForAllAlbums(assetIds)
+    suspend fun removeDecisionsFromAllAlbums(assetIds: List<String>, userId: String) {
+        swipeDecisionDao.deleteDecisionsForAllAlbums(assetIds, userId)
     }
 
     /**
-     * Nettoie les décisions d'un album.
+     * Nettoie les décisions d'un album pour un utilisateur.
      */
-    suspend fun clearAlbumDecisions(albumId: String) {
-        swipeDecisionDao.deleteDecisionsForAlbum(albumId)
+    suspend fun clearAlbumDecisions(albumId: String, userId: String) {
+        swipeDecisionDao.deleteDecisionsForAlbum(albumId, userId)
     }
 
     /**
-     * Récupère toutes les décisions 'SKIP' synchronisées.
+     * Récupère toutes les décisions 'SKIP' synchronisées pour un utilisateur.
      */
-    fun getSyncedSkipDecisions(): Flow<List<SwipeDecisionEntity>> {
-        return swipeDecisionDao.getSyncedSkipDecisions()
+    fun getSyncedSkipDecisions(userId: String): Flow<List<SwipeDecisionEntity>> {
+        return swipeDecisionDao.getSyncedSkipDecisions(userId)
     }
 
     /**
-     * Récupère le nombre de 'SKIP' synchronisés.
+     * Récupère le nombre de 'SKIP' synchronisés pour un utilisateur.
      */
-    fun getSyncedSkipCount(): Flow<Int> {
-        return swipeDecisionDao.getSyncedSkipCount()
+    fun getSyncedSkipCount(userId: String): Flow<Int> {
+        return swipeDecisionDao.getSyncedSkipCount(userId)
+    }
+
+    /**
+     * Migre les anciennes décisions (sans userId) vers l'utilisateur actuel.
+     */
+    suspend fun migrateLegacyDecisions(userId: String) {
+        swipeDecisionDao.migrateLegacyData(userId)
     }
 
     /**

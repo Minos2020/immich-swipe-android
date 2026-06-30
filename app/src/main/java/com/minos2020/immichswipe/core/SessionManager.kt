@@ -68,4 +68,5 @@ object SessionManager {
     fun isLoggedIn(): Boolean = api != null
     fun getBaseUrl(): String? = config?.baseUrl
     fun getApiKey(): String? = config?.apiKey
+    fun getUserId(): String? = config?.userId
 }

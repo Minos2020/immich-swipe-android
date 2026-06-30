@@ -127,14 +127,14 @@ class SwipeViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
+                val config = sessionRepository.sessionConfig.first() ?: return@launch
                 val includeArchived = sessionRepository.includeArchived.first()
 
-                // On charge les assets depuis l'API
-                val assets = assetRepository.getAssetsByAlbum(album.id, includeArchived)
+                // On charge les assets depuis l'API (en passant le userId pour l'album virtuel)
+                val assets = assetRepository.getAssetsByAlbum(album.id, includeArchived, config.userId)
                 
                 // On charge les décisions locales déjà prises pour cet album
-                // On utilise first() pour avoir une photo à l'instant T sans observer en continu ici
-                val localDecisions = swipeDecisionRepository.getDecisionsForAlbum(album.id).first()
+                val localDecisions = swipeDecisionRepository.getDecisionsForAlbum(album.id, config.userId).first()
                 
                 // Durée d'expiration en millisecondes
                 val lifespanDays = sessionRepository.skipLifespanDays.first()
@@ -205,7 +205,7 @@ class SwipeViewModel(
                     // Pour le nettoyage au chargement, on est prudent : on ne nettoie que pour CET album
                     // car l'absence dans CET album ne veut pas dire que l'asset est mort sur Immich
                     // (il a pu être simplement retiré de l'album).
-                    swipeDecisionRepository.removeDecisions(invalidAssetIds, album.id)
+                    swipeDecisionRepository.removeDecisions(invalidAssetIds, album.id, config.userId)
                     invalidAssetIds.forEach { 
                         decisionMap.remove(it)
                         sizeMap.remove(it)
@@ -269,9 +269,11 @@ class SwipeViewModel(
 
         // 1. Sauvegarde en base locale (Room)
         viewModelScope.launch {
+            val config = sessionRepository.sessionConfig.first() ?: return@launch
             swipeDecisionRepository.saveDecision(
                 assetId = currentAsset.id,
                 albumId = album.id,
+                userId = config.userId,
                 decision = decision.name,
                 fileSize = currentSize,
                 isSynced = false // Toujours false au départ, même pour SKIP
@@ -359,9 +361,10 @@ class SwipeViewModel(
         val lastAssetIdFromHistory = currentState.history.lastOrNull()
 
         viewModelScope.launch {
+            val config = sessionRepository.sessionConfig.first() ?: return@launch
             if (lastAssetIdFromHistory != null) {
                 // 1. LOGIQUE DE SESSION (Historique présent)
-                swipeDecisionRepository.removeDecision(lastAssetIdFromHistory, album.id)
+                swipeDecisionRepository.removeDecision(lastAssetIdFromHistory, album.id, config.userId)
                 
                 val newDecisions = currentState.decisions.toMutableMap()
                 newDecisions.remove(lastAssetIdFromHistory)
@@ -389,7 +392,7 @@ class SwipeViewModel(
 
                 // On nettoie UNIQUEMENT l'actuel
                 if (currentAsset != null) {
-                    swipeDecisionRepository.removeDecision(currentAsset.id, album.id)
+                    swipeDecisionRepository.removeDecision(currentAsset.id, album.id, config.userId)
                 }
                 
                 val newDecisions = currentState.decisions.toMutableMap()
@@ -430,8 +433,9 @@ class SwipeViewModel(
     fun undoSpecificDecision(assetId: String) {
         val currentState = _uiState.value
         viewModelScope.launch {
+            val config = sessionRepository.sessionConfig.first() ?: return@launch
             // 1. Suppression base Room
-            swipeDecisionRepository.removeDecision(assetId, album.id)
+            swipeDecisionRepository.removeDecision(assetId, album.id, config.userId)
             
             // 2. Mise à jour UI
             val newDecisions = currentState.decisions.toMutableMap()
@@ -468,6 +472,7 @@ class SwipeViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSyncing = true)
             try {
+                val config = sessionRepository.sessionConfig.first() ?: return@launch
                 // 1. Appels API
                 if (toDelete.isNotEmpty()) assetRepository.deleteAssets(toDelete)
                 if (toFavorite.isNotEmpty()) assetRepository.updateAssets(toFavorite, isFavorite = true)
@@ -476,7 +481,7 @@ class SwipeViewModel(
                 if (toLock.isNotEmpty()) assetRepository.updateAssets(toLock, visibility = "locked")
 
                 // 2. Vérification et mise à jour de la base locale
-                val freshAssets = assetRepository.getAssetsByAlbum(album.id)
+                val freshAssets = assetRepository.getAssetsByAlbum(album.id, userId = config.userId)
                 val freshIds = freshAssets.map { it.id }.toSet()
 
                 // - Identification des succès (ceux qui ont disparu de l'album)
@@ -495,11 +500,11 @@ class SwipeViewModel(
                         sessionRepository.addDeletedStats(totalBytes, successfulDeletions.size)
                     }
                     // On retire de la base locale car ils ne sont plus dans l'album
-                    swipeDecisionRepository.removeDecisionsFromAllAlbums(successfullyDisappeared)
+                    swipeDecisionRepository.removeDecisionsFromAllAlbums(successfullyDisappeared, config.userId)
                 }
 
                 if (successfulKeeps.isNotEmpty()) {
-                    swipeDecisionRepository.markAsSynced(successfulKeeps)
+                    swipeDecisionRepository.markAsSynced(successfulKeeps, config.userId)
                 }
 
                 // 4. Feedback utilisateur et rechargement

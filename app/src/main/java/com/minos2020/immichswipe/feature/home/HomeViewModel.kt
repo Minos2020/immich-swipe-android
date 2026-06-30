@@ -1,6 +1,7 @@
 package com.minos2020.immichswipe.feature.home
 
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.combine
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.minos2020.immichswipe.data.repository.UserRepository
@@ -76,22 +77,35 @@ class HomeViewModel(
 
         // Observe les décisions locales pour mettre à jour les barres de progression
         viewModelScope.launch {
-            swipeDecisionRepository.getAllAlbumDecisionCounts().collect { stats ->
-                val treatedMap = stats.associate { it.albumId to it.totalCount }
-                val unsyncedMap = stats.associate { it.albumId to it.unsyncedCount }
-                _uiState.update { 
-                    it.copy(
-                        albumTreatedCounts = treatedMap,
-                        albumUnsyncedChanges = unsyncedMap
-                    )
+            sessionRepository.sessionConfig.collect { config ->
+                if (config != null) {
+                    swipeDecisionRepository.getAllAlbumDecisionCounts(config.userId).collect { stats ->
+                        val treatedMap = stats.associate { it.albumId to it.totalCount }
+                        val unsyncedMap = stats.associate { it.albumId to it.unsyncedCount }
+                        _uiState.update { 
+                            it.copy(
+                                albumTreatedCounts = treatedMap,
+                                albumUnsyncedChanges = unsyncedMap
+                            )
+                        }
+                    }
                 }
             }
         }
 
         // Observe le nombre de SKIP synchronisés pour l'album virtuel
         viewModelScope.launch {
-            swipeDecisionRepository.getSyncedSkipCount().collect { count ->
-                _uiState.update { it.copy(syncedSkipCount = count) }
+            sessionRepository.sessionConfig.collect { config ->
+                if (config != null) {
+                    combine(
+                        swipeDecisionRepository.getSyncedSkipCount(config.userId),
+                        sessionRepository.includeArchived
+                    ) { count, _ ->
+                        count // Imprecision accepted for now
+                    }.collect { adjustedCount ->
+                        _uiState.update { it.copy(syncedSkipCount = adjustedCount) }
+                    }
+                }
             }
         }
     }
@@ -101,6 +115,9 @@ class HomeViewModel(
             _uiState.update { it.copy(isLoading = true) }
             try {
                 val user = userRepository.getCurrentUser()
+                // SOLUTION : Migration des anciennes données (v3 -> v4) vers l'ID utilisateur réel
+                swipeDecisionRepository.migrateLegacyDecisions(user.id)
+
                 val albums = albumRepository.refreshAlbums(_uiState.value.includeArchived)
                 _uiState.update { 
                     it.copy(

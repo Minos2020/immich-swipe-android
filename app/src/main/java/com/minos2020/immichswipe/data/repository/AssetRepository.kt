@@ -22,10 +22,10 @@ class AssetRepository(
     /**
      * Récupère toutes les photos d'un album.
      */
-    suspend fun getAssetsByAlbum(albumId: String, includeArchived: Boolean = false): List<Asset> {
-        if (albumId == Album.VIRTUAL_SKIPPED_ID && swipeDecisionDao != null) {
-            // Album virtuel : On récupère les IDs depuis la base locale
-            val skippedDecisions = swipeDecisionDao.getSyncedSkipDecisions().first()
+    suspend fun getAssetsByAlbum(albumId: String, includeArchived: Boolean = false, userId: String? = null): List<Asset> {
+        if (albumId == Album.VIRTUAL_SKIPPED_ID && swipeDecisionDao != null && userId != null) {
+            // Album virtuel : On récupère les IDs depuis la base locale pour cet utilisateur
+            val skippedDecisions = swipeDecisionDao.getSyncedSkipDecisions(userId).first()
             val assetIds = skippedDecisions.map { it.assetId }
             
             // On récupère les détails pour chaque asset en parallèle

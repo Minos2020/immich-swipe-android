@@ -71,15 +71,15 @@ class AuthViewModel(
                 val apiKey = _uiState.value.apiKey.trim()
 
                 // 1. On demande au Repository de vérifier les identifiants
-                authRepository.checkCredentials(baseUrl, apiKey)
+                val user = authRepository.checkCredentials(baseUrl, apiKey)
 
                 // 2. Si on arrive ici, c'est que la connexion a réussi !
                 // On initialise la session globale (SessionManager)
-                val config = SessionConfig(baseUrl = baseUrl, apiKey = apiKey)
+                val config = SessionConfig(baseUrl = baseUrl, apiKey = apiKey, userId = user.id)
                 SessionManager.initialize(config)
 
                 // 3. On sauvegarde la session dans le stockage local (DataStore)
-                sessionRepository.saveSession(baseUrl = baseUrl, token = apiKey)
+                sessionRepository.saveSession(baseUrl = baseUrl, token = apiKey, userId = user.id)
 
                 // 4. On met à jour l'UI pour signaler le succès
                 _uiState.value = _uiState.value.copy(

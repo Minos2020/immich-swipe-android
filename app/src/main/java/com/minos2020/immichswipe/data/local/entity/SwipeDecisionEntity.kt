@@ -16,11 +16,12 @@ import androidx.room.Entity
  */
 @Entity(
     tableName = "swipe_decisions",
-    primaryKeys = ["assetId", "albumId"]
+    primaryKeys = ["assetId", "albumId", "userId"]
 )
 data class SwipeDecisionEntity(
     val assetId: String,
     val albumId: String,
+    val userId: String,
     val decision: String,
     val fileSize: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
