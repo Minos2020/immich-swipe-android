@@ -67,11 +67,10 @@ class AuthViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
             try {
-                val baseUrl = _uiState.value.baseUrl
-                val apiKey = _uiState.value.apiKey
+                val baseUrl = _uiState.value.baseUrl.trim()
+                val apiKey = _uiState.value.apiKey.trim()
 
                 // 1. On demande au Repository de vérifier les identifiants
-                // Si ça échoue, ça lève une exception et on part dans le bloc 'catch'
                 authRepository.checkCredentials(baseUrl, apiKey)
 
                 // 2. Si on arrive ici, c'est que la connexion a réussi !

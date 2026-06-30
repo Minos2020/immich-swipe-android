@@ -3,7 +3,8 @@
 
     <!-- Écran de Connexion -->
     <string name="login_url_label">URL du serveur</string>
-    <string name="login_url_placeholder">https://votre-instance.com</string>
+    <string name="login_url_placeholder">https://votre-immich.com
+        http://192.168.x.x:port</string>
     <string name="login_api_key_label">Clé API</string>
     <string name="login_button">Se connecter</string>
     <string name="login_success">Connexion réussie ✔</string>
