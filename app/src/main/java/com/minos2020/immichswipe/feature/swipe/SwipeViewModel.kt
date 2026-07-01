@@ -229,6 +229,8 @@ class SwipeViewModel(
                     assets = workPileAssets,
                     decisions = decisionMap,
                     assetSizes = sizeMap,
+                    history = emptyList(),
+                    localFavorites = emptyMap(),
                     currentIndex = firstUnprocessedIndex,
                     isLoading = false
                 )
