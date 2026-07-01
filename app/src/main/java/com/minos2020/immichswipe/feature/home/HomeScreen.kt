@@ -25,6 +25,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.*
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -809,47 +812,95 @@ fun AlbumList(
     onRefresh: () -> Unit,
     onAlbumClick: (Album) -> Unit
 ) {
-    PullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = onRefresh,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+    val state = rememberLazyListState()
+    
+    Box(modifier = Modifier.fillMaxSize()) {
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh,
+            modifier = Modifier.fillMaxSize()
         ) {
-            // On définit l'ordre d'affichage des catégories
-            val statusOrder = listOf(AlbumStatus.IN_PROGRESS, AlbumStatus.NOT_STARTED, AlbumStatus.COMPLETED, AlbumStatus.VIRTUAL)
+            LazyColumn(
+                state = state,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // On définit l'ordre d'affichage des catégories
+                val statusOrder = listOf(AlbumStatus.IN_PROGRESS, AlbumStatus.NOT_STARTED, AlbumStatus.COMPLETED, AlbumStatus.VIRTUAL)
 
-            statusOrder.forEach { status ->
-                val albumsInStatus = groupedAlbums[status]
-                if (!albumsInStatus.isNullOrEmpty()) {
-                    item(key = "header_${status.name}") {
-                        val statusLabel = when(status) {
-                            AlbumStatus.IN_PROGRESS -> stringResource(R.string.home_status_in_progress)
-                            AlbumStatus.NOT_STARTED -> stringResource(R.string.home_status_not_started)
-                            AlbumStatus.COMPLETED -> stringResource(R.string.home_status_completed)
-                            AlbumStatus.VIRTUAL -> stringResource(R.string.home_status_virtual)
+                statusOrder.forEach { status ->
+                    val albumsInStatus = groupedAlbums[status]
+                    if (!albumsInStatus.isNullOrEmpty()) {
+                        item(key = "header_${status.name}") {
+                            val statusLabel = when(status) {
+                                AlbumStatus.IN_PROGRESS -> stringResource(R.string.home_status_in_progress)
+                                AlbumStatus.NOT_STARTED -> stringResource(R.string.home_status_not_started)
+                                AlbumStatus.COMPLETED -> stringResource(R.string.home_status_completed)
+                                AlbumStatus.VIRTUAL -> stringResource(R.string.home_status_virtual)
+                            }
+                            Text(
+                                text = statusLabel,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = if (status == AlbumStatus.VIRTUAL)
+                                    VirtualGold // doré
+                                else
+                                    MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                            )
                         }
-                        Text(
-                            text = statusLabel,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = if (status == AlbumStatus.VIRTUAL)
-                                VirtualGold // doré
-                            else
-                                MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-                        )
-                    }
 
-                    items(albumsInStatus, key = { it.id }) { album ->
-                        AlbumItem(
-                            album = album,
-                            treatedCount = treatedCounts[album.id] ?: 0,
-                            unsyncedCount = unsyncedChanges[album.id] ?: 0,
-                            onClick = { onAlbumClick(album) }
+                        items(albumsInStatus, key = { it.id }) { album ->
+                            AlbumItem(
+                                album = album,
+                                treatedCount = treatedCounts[album.id] ?: 0,
+                                unsyncedCount = unsyncedChanges[album.id] ?: 0,
+                                onClick = { onAlbumClick(album) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Barre de défilement fluide
+        val layoutInfo = state.layoutInfo
+        if (layoutInfo.totalItemsCount > 0 && layoutInfo.visibleItemsInfo.isNotEmpty()) {
+            val firstItem = layoutInfo.visibleItemsInfo.first()
+            val totalItems = layoutInfo.totalItemsCount
+            
+            // Position absolue du haut de la vue en "unités d'items"
+            val currentPos = firstItem.index + (-firstItem.offset.toFloat() / firstItem.size.coerceAtLeast(1).toFloat())
+            val scrollFraction = currentPos / totalItems.toFloat()
+            
+            // Calcul de la taille de la barre basé sur la proportion réelle du viewport
+            val viewportHeight = layoutInfo.viewportSize.height.toFloat()
+            val averageItemSize = layoutInfo.visibleItemsInfo.sumOf { it.size }.toFloat() / layoutInfo.visibleItemsInfo.size
+            val visibleFraction = (viewportHeight / averageItemSize) / totalItems
+            
+            val animatedOffset by animateFloatAsState(targetValue = scrollFraction, label = "scrollbarOffset")
+            val animatedHeight by animateFloatAsState(targetValue = visibleFraction.coerceIn(0.05f, 1.0f), label = "scrollbarHeight")
+
+            if (visibleFraction < 1.0f) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 4.dp, top = 16.dp, bottom = 16.dp)
+                        .fillMaxHeight()
+                        .width(4.dp)
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f), CircleShape)
+                ) {
+                    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                        val height = maxHeight * animatedHeight.coerceAtLeast(0.1f)
+                        // Le décalage est simplement proportionnel à la hauteur totale
+                        val offset = maxHeight * animatedOffset
+                        Box(
+                            modifier = Modifier
+                                .offset(y = offset.coerceAtMost(maxHeight - height))
+                                .fillMaxWidth()
+                                .height(height)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), CircleShape)
                         )
                     }
                 }
@@ -867,48 +918,98 @@ fun AlbumGrid(
     onRefresh: () -> Unit,
     onAlbumClick: (Album) -> Unit
 ) {
-    PullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = onRefresh,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(3),
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+    val state = rememberLazyGridState()
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh,
+            modifier = Modifier.fillMaxSize()
         ) {
-            val statusOrder = listOf(AlbumStatus.IN_PROGRESS, AlbumStatus.NOT_STARTED, AlbumStatus.COMPLETED, AlbumStatus.VIRTUAL)
+            LazyVerticalGrid(
+                state = state,
+                columns = GridCells.Fixed(3),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                val statusOrder = listOf(AlbumStatus.IN_PROGRESS, AlbumStatus.NOT_STARTED, AlbumStatus.COMPLETED, AlbumStatus.VIRTUAL)
 
-            statusOrder.forEach { status ->
-                val albumsInStatus = groupedAlbums[status]
-                if (!albumsInStatus.isNullOrEmpty()) {
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        val statusLabel = when(status) {
-                            AlbumStatus.IN_PROGRESS -> stringResource(R.string.home_status_in_progress)
-                            AlbumStatus.NOT_STARTED -> stringResource(R.string.home_status_not_started)
-                            AlbumStatus.COMPLETED -> stringResource(R.string.home_status_completed)
-                            AlbumStatus.VIRTUAL -> stringResource(R.string.home_status_virtual)
+                statusOrder.forEach { status ->
+                    val albumsInStatus = groupedAlbums[status]
+                    if (!albumsInStatus.isNullOrEmpty()) {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            val statusLabel = when(status) {
+                                AlbumStatus.IN_PROGRESS -> stringResource(R.string.home_status_in_progress)
+                                AlbumStatus.NOT_STARTED -> stringResource(R.string.home_status_not_started)
+                                AlbumStatus.COMPLETED -> stringResource(R.string.home_status_completed)
+                                AlbumStatus.VIRTUAL -> stringResource(R.string.home_status_virtual)
+                            }
+                            Text(
+                                text = statusLabel,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = if (status == AlbumStatus.VIRTUAL)
+                                    VirtualGold // doré
+                                else
+                                    MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                            )
                         }
-                        Text(
-                            text = statusLabel,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = if (status == AlbumStatus.VIRTUAL)
-                                VirtualGold // doré
-                            else
-                                MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-                        )
-                    }
 
-                    gridItems(albumsInStatus, key = { it.id }) { album ->
-                        AlbumGridItem(
-                            album = album,
-                            treatedCount = treatedCounts[album.id] ?: 0,
-                            unsyncedCount = unsyncedChanges[album.id] ?: 0,
-                            onClick = { onAlbumClick(album) }
+                        gridItems(albumsInStatus, key = { it.id }) { album ->
+                            AlbumGridItem(
+                                album = album,
+                                treatedCount = treatedCounts[album.id] ?: 0,
+                                unsyncedCount = unsyncedChanges[album.id] ?: 0,
+                                onClick = { onAlbumClick(album) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Barre de défilement fluide
+        val layoutInfo = state.layoutInfo
+        if (layoutInfo.totalItemsCount > 0 && layoutInfo.visibleItemsInfo.isNotEmpty()) {
+            val firstItem = layoutInfo.visibleItemsInfo.first()
+            val totalItems = layoutInfo.totalItemsCount
+
+            // Calcul de la position précise (en se basant sur les lignes de 3)
+            val currentPos = (firstItem.index / 3f) + (-firstItem.offset.y.toFloat() / firstItem.size.height.coerceAtLeast(
+                1
+            ).toFloat())
+            val totalRows = totalItems / 3f
+            val scrollFraction = currentPos / totalRows
+            
+            // Calcul de la taille de la barre basé sur la proportion réelle du viewport
+            val viewportHeight = layoutInfo.viewportSize.height.toFloat()
+            val averageItemHeight = layoutInfo.visibleItemsInfo.sumOf { it.size.height }.toFloat() / layoutInfo.visibleItemsInfo.size
+            val visibleFraction = (viewportHeight / averageItemHeight) / totalRows
+
+            val animatedOffset by animateFloatAsState(targetValue = scrollFraction.coerceIn(0f, 1f), label = "scrollbarOffset")
+            val animatedHeight by animateFloatAsState(targetValue = visibleFraction.coerceIn(0.05f, 1.0f), label = "scrollbarHeight")
+
+            if (visibleFraction < 1.0f) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 4.dp, top = 16.dp, bottom = 16.dp)
+                        .fillMaxHeight()
+                        .width(4.dp)
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f), CircleShape)
+                ) {
+                    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                        val height = maxHeight * animatedHeight
+                        val offset = maxHeight * animatedOffset
+                        Box(
+                            modifier = Modifier
+                                .offset(y = offset.coerceAtMost(maxHeight - height))
+                                .fillMaxWidth()
+                                .height(height)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), CircleShape)
                         )
                     }
                 }
