@@ -10,8 +10,6 @@ import com.minos2020.immichswipe.core.SessionManager
 import com.minos2020.immichswipe.data.repository.SessionRepository
 import com.minos2020.immichswipe.data.repository.SwipeDecisionRepository
 import com.minos2020.immichswipe.data.repository.UserRepository
-import com.minos2020.immichswipe.data.local.entity.SwipeDecisionEntity
-import com.minos2020.immichswipe.data.local.entity.SyncHistoryEntity
 import com.minos2020.immichswipe.data.local.model.DatabaseExport
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

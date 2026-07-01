@@ -1,7 +1,6 @@
 package com.minos2020.immichswipe.feature.home
 
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -56,7 +55,6 @@ import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.minos2020.immichswipe.R
-import com.minos2020.immichswipe.core.AppTheme
 import com.minos2020.immichswipe.core.SessionManager
 import com.minos2020.immichswipe.data.repository.AssetRepository
 import com.minos2020.immichswipe.data.repository.SwipeDecisionRepository

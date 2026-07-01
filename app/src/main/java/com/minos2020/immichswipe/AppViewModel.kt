@@ -2,8 +2,6 @@ package com.minos2020.immichswipe
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.minos2020.immichswipe.core.AppLogger
-import com.minos2020.immichswipe.core.AppTheme
 import com.minos2020.immichswipe.core.SessionManager
 import com.minos2020.immichswipe.data.repository.SessionRepository
 import kotlinx.coroutines.flow.MutableStateFlow

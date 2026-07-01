@@ -11,8 +11,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.collectAsState
@@ -32,10 +30,8 @@ import com.minos2020.immichswipe.data.repository.AssetRepository
 import com.minos2020.immichswipe.data.repository.SwipeDecisionRepository
 import com.minos2020.immichswipe.data.local.AppDatabase
 import com.minos2020.immichswipe.feature.auth.AuthScreen
-import com.minos2020.immichswipe.feature.auth.AuthViewModel
 import com.minos2020.immichswipe.feature.auth.AuthViewModelFactory
 import com.minos2020.immichswipe.feature.common.LoadingScreen
-import com.minos2020.immichswipe.feature.home.HomeViewModel
 import com.minos2020.immichswipe.feature.home.HomeViewModelFactory
 
 class MainActivity : ComponentActivity() {
