@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -279,18 +280,22 @@ fun HomeScreen(
                                     groupedAlbums = uiState.groupedAlbums,
                                     treatedCounts = uiState.albumTreatedCounts,
                                     unsyncedChanges = uiState.albumUnsyncedChanges,
+                                    collapsedCategories = uiState.collapsedCategories,
                                     isRefreshing = uiState.isRefreshing,
                                     onRefresh = { viewModel.refreshAlbums() },
-                                    onAlbumClick = { viewModel.onAlbumSelected(it) }
+                                    onAlbumClick = { viewModel.onAlbumSelected(it) },
+                                    onToggleCategory = { viewModel.toggleCategory(it) }
                                 )
                             } else {
                                 AlbumList(
                                     groupedAlbums = uiState.groupedAlbums,
                                     treatedCounts = uiState.albumTreatedCounts,
                                     unsyncedChanges = uiState.albumUnsyncedChanges,
+                                    collapsedCategories = uiState.collapsedCategories,
                                     isRefreshing = uiState.isRefreshing,
                                     onRefresh = { viewModel.refreshAlbums() },
-                                    onAlbumClick = { viewModel.onAlbumSelected(it) }
+                                    onAlbumClick = { viewModel.onAlbumSelected(it) },
+                                    onToggleCategory = { viewModel.toggleCategory(it) }
                                 )
                             }
                         }
@@ -808,9 +813,11 @@ fun AlbumList(
     groupedAlbums: Map<AlbumStatus, List<Album>>,
     treatedCounts: Map<String, Int>,
     unsyncedChanges: Map<String, Int>,
+    collapsedCategories: Set<AlbumStatus>,
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
-    onAlbumClick: (Album) -> Unit
+    onAlbumClick: (Album) -> Unit,
+    onToggleCategory: (AlbumStatus) -> Unit
 ) {
     val state = rememberLazyListState()
     
@@ -832,6 +839,7 @@ fun AlbumList(
                 statusOrder.forEach { status ->
                     val albumsInStatus = groupedAlbums[status]
                     if (!albumsInStatus.isNullOrEmpty()) {
+                        val isCollapsed = collapsedCategories.contains(status)
                         item(key = "header_${status.name}") {
                             val statusLabel = when(status) {
                                 AlbumStatus.IN_PROGRESS -> stringResource(R.string.home_status_in_progress)
@@ -839,25 +847,47 @@ fun AlbumList(
                                 AlbumStatus.COMPLETED -> stringResource(R.string.home_status_completed)
                                 AlbumStatus.VIRTUAL -> stringResource(R.string.home_status_virtual)
                             }
-                            Text(
-                                text = statusLabel,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = if (status == AlbumStatus.VIRTUAL)
-                                    VirtualGold // doré
-                                else
-                                    MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onToggleCategory(status) }
+                                    .padding(top = 8.dp, bottom = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = statusLabel,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = if (status == AlbumStatus.VIRTUAL)
+                                        VirtualGold // doré
+                                    else
+                                        MaterialTheme.colorScheme.primary
+                                )
+                                
+                                val rotation by animateFloatAsState(
+                                    targetValue = if (isCollapsed) -90f else 0f,
+                                    label = "chevronRotation"
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.ExpandMore,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.outline,
+                                    modifier = Modifier.graphicsLayer { rotationZ = rotation }
+                                )
+                            }
                         }
 
-                        items(albumsInStatus, key = { it.id }) { album ->
-                            AlbumItem(
-                                album = album,
-                                treatedCount = treatedCounts[album.id] ?: 0,
-                                unsyncedCount = unsyncedChanges[album.id] ?: 0,
-                                onClick = { onAlbumClick(album) }
-                            )
+                        if (!isCollapsed) {
+                            items(albumsInStatus, key = { it.id }) { album ->
+                                AlbumItem(
+                                    album = album,
+                                    treatedCount = treatedCounts[album.id] ?: 0,
+                                    unsyncedCount = unsyncedChanges[album.id] ?: 0,
+                                    onClick = { onAlbumClick(album) },
+                                    modifier = Modifier.animateItem()
+                                )
+                            }
                         }
                     }
                 }
@@ -914,9 +944,11 @@ fun AlbumGrid(
     groupedAlbums: Map<AlbumStatus, List<Album>>,
     treatedCounts: Map<String, Int>,
     unsyncedChanges: Map<String, Int>,
+    collapsedCategories: Set<AlbumStatus>,
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
-    onAlbumClick: (Album) -> Unit
+    onAlbumClick: (Album) -> Unit,
+    onToggleCategory: (AlbumStatus) -> Unit
 ) {
     val state = rememberLazyGridState()
 
@@ -939,6 +971,7 @@ fun AlbumGrid(
                 statusOrder.forEach { status ->
                     val albumsInStatus = groupedAlbums[status]
                     if (!albumsInStatus.isNullOrEmpty()) {
+                        val isCollapsed = collapsedCategories.contains(status)
                         item(span = { GridItemSpan(maxLineSpan) }) {
                             val statusLabel = when(status) {
                                 AlbumStatus.IN_PROGRESS -> stringResource(R.string.home_status_in_progress)
@@ -946,25 +979,47 @@ fun AlbumGrid(
                                 AlbumStatus.COMPLETED -> stringResource(R.string.home_status_completed)
                                 AlbumStatus.VIRTUAL -> stringResource(R.string.home_status_virtual)
                             }
-                            Text(
-                                text = statusLabel,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = if (status == AlbumStatus.VIRTUAL)
-                                    VirtualGold // doré
-                                else
-                                    MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onToggleCategory(status) }
+                                    .padding(top = 8.dp, bottom = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = statusLabel,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = if (status == AlbumStatus.VIRTUAL)
+                                        VirtualGold // doré
+                                    else
+                                        MaterialTheme.colorScheme.primary
+                                )
+                                
+                                val rotation by animateFloatAsState(
+                                    targetValue = if (isCollapsed) -90f else 0f,
+                                    label = "chevronRotation"
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.ExpandMore,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.outline,
+                                    modifier = Modifier.graphicsLayer { rotationZ = rotation }
+                                )
+                            }
                         }
 
-                        gridItems(albumsInStatus, key = { it.id }) { album ->
-                            AlbumGridItem(
-                                album = album,
-                                treatedCount = treatedCounts[album.id] ?: 0,
-                                unsyncedCount = unsyncedChanges[album.id] ?: 0,
-                                onClick = { onAlbumClick(album) }
-                            )
+                        if (!isCollapsed) {
+                            gridItems(albumsInStatus, key = { it.id }) { album ->
+                                AlbumGridItem(
+                                    album = album,
+                                    treatedCount = treatedCounts[album.id] ?: 0,
+                                    unsyncedCount = unsyncedChanges[album.id] ?: 0,
+                                    onClick = { onAlbumClick(album) },
+                                    modifier = Modifier.animateItem()
+                                )
+                            }
                         }
                     }
                 }
@@ -1019,17 +1074,22 @@ fun AlbumGrid(
 }
 
 @Composable
-fun AlbumGridItem(album: Album, treatedCount: Int, unsyncedCount: Int, onClick: () -> Unit) {
+fun AlbumGridItem(
+    album: Album,
+    treatedCount: Int,
+    unsyncedCount: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val context = LocalContext.current
     val baseUrl = remember { SessionManager.getBaseUrl()?.removeSuffix("/") }
     val apiKey = remember { SessionManager.getApiKey() ?: "" }
     val progress = if (album.assetCount > 0) treatedCount.toFloat() / album.assetCount else 0f
     val isCompleted = album.assetCount in 1..treatedCount
-    val isNotStarted = treatedCount == 0
     val hasUnsyncedChanges = unsyncedCount > 0
 
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .aspectRatio(0.8f)
             .clickable { onClick() },
@@ -1154,7 +1214,13 @@ fun AlbumGridItem(album: Album, treatedCount: Int, unsyncedCount: Int, onClick: 
 }
 
 @Composable
-fun AlbumItem(album: Album, treatedCount: Int, unsyncedCount: Int, onClick: () -> Unit) {
+fun AlbumItem(
+    album: Album,
+    treatedCount: Int,
+    unsyncedCount: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val context = LocalContext.current
     val baseUrl = remember { SessionManager.getBaseUrl()?.removeSuffix("/") }
     val apiKey = remember { SessionManager.getApiKey() ?: "" }
@@ -1164,7 +1230,7 @@ fun AlbumItem(album: Album, treatedCount: Int, unsyncedCount: Int, onClick: () -
     val hasUnsyncedChanges = unsyncedCount > 0
 
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),

@@ -292,5 +292,18 @@ class HomeViewModel(
     }
 
     fun toggleLayoutMode() = _uiState.update { it.copy(isGridView = !it.isGridView) }
+
+    fun toggleCategory(status: AlbumStatus) {
+        _uiState.update { state ->
+            val newCollapsed = state.collapsedCategories.toMutableSet()
+            if (newCollapsed.contains(status)) {
+                newCollapsed.remove(status)
+            } else {
+                newCollapsed.add(status)
+            }
+            state.copy(collapsedCategories = newCollapsed)
+        }
+    }
+
     fun getSessionRepository() = sessionRepository
 }

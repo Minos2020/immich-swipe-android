@@ -40,7 +40,8 @@ data class HomeUiState(
     val virtualNames: Map<String, String> = emptyMap(), // Noms localisés des albums virtuels
     val virtualDescriptions: Map<String, String> = emptyMap(), // Descriptions localisées
     val showStatsPopup: Boolean = false, // Visibilité de la popup stats
-    val stats: StatsUiData = StatsUiData() // Données des stats
+    val stats: StatsUiData = StatsUiData(), // Données des stats
+    val collapsedCategories: Set<AlbumStatus> = emptySet() // Catégories réduites
 ) {
     /**
      * Retourne la liste des albums filtrée par le texte de recherche.
