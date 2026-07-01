@@ -4,6 +4,14 @@ import com.minos2020.immichswipe.core.AppTheme
 import com.minos2020.immichswipe.core.IconPosition
 import com.minos2020.immichswipe.core.PlaybackBehavior
 
+enum class DatabaseScope {
+    ALL, USER
+}
+
+enum class DatabaseAction {
+    DELETE, EXPORT, IMPORT
+}
+
 /**
  * État de l'écran des paramètres.
  */
@@ -24,5 +32,10 @@ data class SettingsUiState(
     val showLockButton: Boolean = true,
     val autoNextOnFav: Boolean = true,
     val includeArchived: Boolean = false,
-    val showLogsDialog: Boolean = false
+    val showLogsDialog: Boolean = false,
+    
+    // Database actions
+    val pendingDatabaseAction: DatabaseAction? = null,
+    val pendingDatabaseScope: DatabaseScope? = null,
+    val databaseActionStatus: String? = null
 )

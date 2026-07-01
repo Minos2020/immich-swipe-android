@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.minos2020.immichswipe.data.local.entity.SwipeDecisionEntity
+import com.minos2020.immichswipe.data.local.entity.SyncHistoryEntity
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -99,13 +100,13 @@ interface SwipeDecisionDao {
      * Insère une entrée dans l'historique de synchronisation.
      */
     @Insert
-    suspend fun insertSyncHistory(history: com.minos2020.immichswipe.data.local.entity.SyncHistoryEntity)
+    suspend fun insertSyncHistory(history: SyncHistoryEntity)
 
     /**
      * Récupère tout l'historique de synchronisation pour un utilisateur.
      */
     @Query("SELECT * FROM sync_history WHERE userId = :userId ORDER BY timestamp DESC")
-    fun getSyncHistory(userId: String): Flow<List<com.minos2020.immichswipe.data.local.entity.SyncHistoryEntity>>
+    fun getSyncHistory(userId: String): Flow<List<SyncHistoryEntity>>
 
     /**
      * Récupère les statistiques de décisions pour tous les albums d'un utilisateur sous forme de Flow.
@@ -119,6 +120,38 @@ interface SwipeDecisionDao {
         GROUP BY albumId
     """)
     fun getAllAlbumDecisionCounts(userId: String): Flow<List<AlbumDecisionCount>>
+
+    // --- Opérations d'administration de la base de données ---
+
+    @Query("DELETE FROM swipe_decisions")
+    suspend fun deleteAllDecisions()
+
+    @Query("DELETE FROM swipe_decisions WHERE userId = :userId")
+    suspend fun deleteAllDecisionsForUser(userId: String)
+
+    @Query("DELETE FROM sync_history")
+    suspend fun deleteAllSyncHistory()
+
+    @Query("DELETE FROM sync_history WHERE userId = :userId")
+    suspend fun deleteAllSyncHistoryForUser(userId: String)
+
+    @Query("SELECT * FROM swipe_decisions")
+    suspend fun getAllDecisionsRaw(): List<SwipeDecisionEntity>
+
+    @Query("SELECT * FROM swipe_decisions WHERE userId = :userId")
+    suspend fun getAllDecisionsForUserRaw(userId: String): List<SwipeDecisionEntity>
+
+    @Query("SELECT * FROM sync_history")
+    suspend fun getAllSyncHistoryRaw(): List<SyncHistoryEntity>
+
+    @Query("SELECT * FROM sync_history WHERE userId = :userId")
+    suspend fun getAllSyncHistoryForUserRaw(userId: String): List<SyncHistoryEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDecisions(decisions: List<SwipeDecisionEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSyncHistoryList(history: List<SyncHistoryEntity>)
 }
 
 /**

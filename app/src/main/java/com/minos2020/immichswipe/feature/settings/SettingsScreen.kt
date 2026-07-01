@@ -17,6 +17,8 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.*
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -44,6 +46,35 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
     val context = androidx.compose.ui.platform.LocalContext.current
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        uri?.let {
+            val scope = uiState.pendingDatabaseScope ?: DatabaseScope.USER
+            context.contentResolver.openOutputStream(it)?.let { outputStream ->
+                viewModel.exportDatabase(scope, outputStream)
+            }
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            context.contentResolver.openInputStream(it)?.let { inputStream ->
+                viewModel.importDatabase(inputStream)
+            }
+        }
+    }
+
+    // Toast pour le statut des actions de base de données
+    LaunchedEffect(uiState.databaseActionStatus) {
+        uiState.databaseActionStatus?.let {
+            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_LONG).show()
+            viewModel.clearDatabaseActionStatus()
+        }
+    }
 
     Column(
         modifier = modifier
@@ -316,6 +347,34 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(16.dp))
 
+            // SECTION BASE DE DONNÉES
+            SettingsSection(title = stringResource(R.string.settings_section_database), icon = Icons.Default.Storage) {
+                Column {
+                    SettingsClickableItem(
+                        title = stringResource(R.string.settings_db_delete_label),
+                        subtitle = stringResource(R.string.settings_db_delete_desc),
+                        icon = Icons.Default.DeleteForever,
+                        onClick = { viewModel.requestDatabaseAction(DatabaseAction.DELETE, DatabaseScope.USER) }
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
+                    SettingsClickableItem(
+                        title = stringResource(R.string.settings_db_export_label),
+                        subtitle = stringResource(R.string.settings_db_export_desc),
+                        icon = Icons.Default.FileUpload,
+                        onClick = { viewModel.requestDatabaseAction(DatabaseAction.EXPORT, DatabaseScope.USER) }
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
+                    SettingsClickableItem(
+                        title = stringResource(R.string.settings_db_import_label),
+                        subtitle = stringResource(R.string.settings_db_import_desc),
+                        icon = Icons.Default.FileDownload,
+                        onClick = { viewModel.requestDatabaseAction(DatabaseAction.IMPORT, DatabaseScope.ALL) }
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
             // SECTION DEBUG
             SettingsSection(title = stringResource(R.string.settings_section_debug), icon = Icons.Default.BugReport) {
                 Column {
@@ -474,6 +533,93 @@ fun SettingsScreen(
         )
     }
 
+    // Dialogue de confirmation pour les actions sur la Base de Données
+    uiState.pendingDatabaseAction?.let { action ->
+        val scope = uiState.pendingDatabaseScope ?: DatabaseScope.USER
+        
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissDatabaseConfirmation() },
+            title = {
+                val titleRes = when(action) {
+                    DatabaseAction.DELETE -> R.string.settings_db_confirm_delete_title
+                    DatabaseAction.EXPORT -> R.string.settings_db_confirm_export_title
+                    DatabaseAction.IMPORT -> R.string.settings_db_confirm_import_title
+                }
+                Text(stringResource(titleRes))
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    val msgRes = when(action) {
+                        DatabaseAction.DELETE -> R.string.settings_db_confirm_delete_msg
+                        DatabaseAction.IMPORT -> R.string.settings_db_confirm_import_msg
+                        DatabaseAction.EXPORT -> null
+                    }
+                    msgRes?.let { Text(stringResource(it)) }
+                    
+                    if (action != DatabaseAction.IMPORT) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "Portée de l'opération :",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Column(Modifier.selectableGroup()) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .selectable(
+                                        selected = scope == DatabaseScope.USER,
+                                        onClick = { viewModel.requestDatabaseAction(action, DatabaseScope.USER) },
+                                        role = Role.RadioButton
+                                    )
+                                    .padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(selected = scope == DatabaseScope.USER, onClick = null)
+                                Text(stringResource(R.string.settings_db_scope_user, uiState.userName), modifier = Modifier.padding(start = 12.dp))
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .selectable(
+                                        selected = scope == DatabaseScope.ALL,
+                                        onClick = { viewModel.requestDatabaseAction(action, DatabaseScope.ALL) },
+                                        role = Role.RadioButton
+                                    )
+                                    .padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(selected = scope == DatabaseScope.ALL, onClick = null)
+                                Text(stringResource(R.string.settings_db_scope_all), modifier = Modifier.padding(start = 12.dp))
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        when(action) {
+                            DatabaseAction.DELETE -> viewModel.executeDelete(scope)
+                            DatabaseAction.EXPORT -> {
+                                val fileName = "immich_swipe_backup_${if(scope == DatabaseScope.ALL) "total" else "user"}_${System.currentTimeMillis()}.json"
+                                exportLauncher.launch(fileName)
+                            }
+                            DatabaseAction.IMPORT -> importLauncher.launch("application/json")
+                        }
+                    },
+                    colors = if (action == DatabaseAction.DELETE) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error) else ButtonDefaults.buttonColors()
+                ) {
+                    Text(stringResource(R.string.common_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissDatabaseConfirmation() }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            }
+        )
+    }
 }
 
 @Composable

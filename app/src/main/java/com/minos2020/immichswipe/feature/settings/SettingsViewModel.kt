@@ -10,6 +10,9 @@ import com.minos2020.immichswipe.core.SessionManager
 import com.minos2020.immichswipe.data.repository.SessionRepository
 import com.minos2020.immichswipe.data.repository.SwipeDecisionRepository
 import com.minos2020.immichswipe.data.repository.UserRepository
+import com.minos2020.immichswipe.data.local.entity.SwipeDecisionEntity
+import com.minos2020.immichswipe.data.local.entity.SyncHistoryEntity
+import com.minos2020.immichswipe.data.local.model.DatabaseExport
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -204,6 +207,90 @@ class SettingsViewModel(
         viewModelScope.launch {
             sessionRepository.clearSession()
         }
+    }
+
+    // --- Gestion de la Base de Données ---
+
+    fun requestDatabaseAction(action: DatabaseAction, scope: DatabaseScope) {
+        _uiState.value = _uiState.value.copy(
+            pendingDatabaseAction = action,
+            pendingDatabaseScope = scope
+        )
+    }
+
+    fun dismissDatabaseConfirmation() {
+        _uiState.value = _uiState.value.copy(
+            pendingDatabaseAction = null,
+            pendingDatabaseScope = null
+        )
+    }
+
+    fun executeDelete(scope: DatabaseScope) {
+        viewModelScope.launch {
+            val userId = SessionManager.getUserId()
+            if (scope == DatabaseScope.ALL) {
+                swipeDecisionRepository.clearAllData()
+            } else {
+                userId?.let { swipeDecisionRepository.clearUserData(it) }
+            }
+            dismissDatabaseConfirmation()
+            _uiState.value = _uiState.value.copy(databaseActionStatus = "Données supprimées avec succès")
+        }
+    }
+
+    fun exportDatabase(scope: DatabaseScope, outputStream: java.io.OutputStream) {
+        viewModelScope.launch {
+            try {
+                val userId = SessionManager.getUserId()
+                val decisions = if (scope == DatabaseScope.ALL) {
+                    swipeDecisionRepository.getAllDecisionsRaw()
+                } else {
+                    userId?.let { swipeDecisionRepository.getAllDecisionsForUserRaw(it) } ?: emptyList()
+                }
+                val history = if (scope == DatabaseScope.ALL) {
+                    swipeDecisionRepository.getAllSyncHistoryRaw()
+                } else {
+                    userId?.let { swipeDecisionRepository.getAllSyncHistoryForUserRaw(it) } ?: emptyList()
+                }
+
+                val export = DatabaseExport(
+                    swipeDecisions = decisions,
+                    syncHistory = history,
+                    scope = scope.name,
+                    userId = if (scope == DatabaseScope.USER) userId else null
+                )
+
+                val json = com.google.gson.Gson().toJson(export)
+                outputStream.use { it.write(json.toByteArray()) }
+
+                _uiState.value = _uiState.value.copy(databaseActionStatus = "Export terminé (${decisions.size} décisions)")
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(databaseActionStatus = "Erreur export: ${e.message}")
+            } finally {
+                dismissDatabaseConfirmation()
+            }
+        }
+    }
+
+    fun importDatabase(inputStream: java.io.InputStream) {
+        viewModelScope.launch {
+            try {
+                val json = inputStream.bufferedReader().use { it.readText() }
+                val export = com.google.gson.Gson().fromJson(json, DatabaseExport::class.java)
+
+                swipeDecisionRepository.importData(export.swipeDecisions, export.syncHistory)
+
+                _uiState.value = _uiState.value.copy(databaseActionStatus = "Import réussi (${export.swipeDecisions.size} décisions)")
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(databaseActionStatus = "Erreur import: ${e.message}")
+            } finally {
+                dismissDatabaseConfirmation()
+            }
+        }
+    }
+
+    fun clearDatabaseActionStatus() {
+        _uiState.value = _uiState.value.copy(databaseActionStatus = null)
     }
 
     fun setShowLogs(show: Boolean) {

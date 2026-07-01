@@ -165,6 +165,22 @@
     <string name="stats_distribution_title">Decision breakdown</string>
     <string name="stats_no_data">No synchronization data available yet.</string>
 
+    <!-- Database Management -->
+    <string name="settings_section_database">Database</string>
+    <string name="settings_db_delete_label">Delete data</string>
+    <string name="settings_db_delete_desc">Clear your swipe choices and history.</string>
+    <string name="settings_db_export_label">Export database</string>
+    <string name="settings_db_export_desc">Save your data to a JSON file.</string>
+    <string name="settings_db_import_label">Import database</string>
+    <string name="settings_db_import_desc">Restore data from a JSON file.</string>
+    <string name="settings_db_scope_user">Only my account (%1$s)</string>
+    <string name="settings_db_scope_all">All accounts (Total)</string>
+    <string name="settings_db_confirm_delete_title">⚠️ PERMANENT DELETION</string>
+    <string name="settings_db_confirm_delete_msg">Are you ABSOLUTELY sure you want to delete the data?\n\nThis action is irreversible and will erase all your local swipe decisions and sync statistics.</string>
+    <string name="settings_db_confirm_export_title">Export data</string>
+    <string name="settings_db_confirm_import_title">Import data</string>
+    <string name="settings_db_confirm_import_msg">Importing will add the file data to your current database. Existing decisions will be updated.\n\nDo you want to continue?</string>
+
     <!-- Debugging -->
     <string name="settings_section_debug">Debugging</string>
     <string name="settings_view_logs_label">View local logs</string>

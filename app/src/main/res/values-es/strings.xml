@@ -152,6 +152,22 @@
     <string name="stats_distribution_title">Desglose de decisiones</string>
     <string name="stats_no_data">Aún no hay datos de sincronización disponibles.</string>
 
+    <!-- Gestión de la base de datos -->
+    <string name="settings_section_database">Base de datos</string>
+    <string name="settings_db_delete_label">Eliminar datos</string>
+    <string name="settings_db_delete_desc">Borrar sus elecciones de deslizamiento e historial.</string>
+    <string name="settings_db_export_label">Exportar base de datos</string>
+    <string name="settings_db_export_desc">Guardar sus datos en un archivo JSON.</string>
+    <string name="settings_db_import_label">Importar base de datos</string>
+    <string name="settings_db_import_desc">Restaurar datos desde un archivo JSON.</string>
+    <string name="settings_db_scope_user">Solo mi cuenta (%1$s)</string>
+    <string name="settings_db_scope_all">Todas las cuentas (Total)</string>
+    <string name="settings_db_confirm_delete_title">⚠️ ELIMINACIÓN PERMANENTE</string>
+    <string name="settings_db_confirm_delete_msg">¿Está ABSOLUTAMENTE seguro de que desea eliminar los datos?\n\nEsta acción es irreversible y borrará todas sus decisiones de deslizamiento locales y estadísticas de sincronización.</string>
+    <string name="settings_db_confirm_export_title">Exportar datos</string>
+    <string name="settings_db_confirm_import_title">Importar datos</string>
+    <string name="settings_db_confirm_import_msg">La importación agregará los datos del archivo a su base de datos actual. Las decisiones existentes se actualizarán.\n\n¿Desea continuar?</string>
+
     <!-- Depuración -->
     <string name="settings_section_debug">Depuración</string>
     <string name="settings_view_logs_label">Ver registros locales</string>

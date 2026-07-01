@@ -168,6 +168,22 @@
     <string name="stats_distribution_title">Répartition des choix</string>
     <string name="stats_no_data">Aucune donnée de synchronisation disponible pour le moment.</string>
 
+    <!-- Gestion de la base de données -->
+    <string name="settings_section_database">Base de données</string>
+    <string name="settings_db_delete_label">Supprimer les données</string>
+    <string name="settings_db_delete_desc">Effacer vos choix de tri et votre historique.</string>
+    <string name="settings_db_export_label">Exporter la base</string>
+    <string name="settings_db_export_desc">Sauvegarder vos données dans un fichier JSON.</string>
+    <string name="settings_db_import_label">Importer une base</string>
+    <string name="settings_db_import_desc">Restaurer des données depuis un fichier JSON.</string>
+    <string name="settings_db_scope_user">Uniquement mon compte (%1$s)</string>
+    <string name="settings_db_scope_all">Tous les comptes (Total)</string>
+    <string name="settings_db_confirm_delete_title">⚠️ SUPPRESSION DÉFINITIVE</string>
+    <string name="settings_db_confirm_delete_msg">Êtes-vous ABSOLUMENT sûr de vouloir supprimer les données ?\n\nCette action est irréversible et effacera toutes vos décisions de tri locales ainsi que vos statistiques de synchronisation.</string>
+    <string name="settings_db_confirm_export_title">Exporter les données</string>
+    <string name="settings_db_confirm_import_title">Importer les données</string>
+    <string name="settings_db_confirm_import_msg">L\'importation va ajouter les données du fichier à votre base actuelle. Les décisions déjà existantes seront mises à jour.\n\nVoulez-vous continuer ?</string>
+
     <!-- Débogage -->
     <string name="settings_section_debug">Débogage</string>
     <string name="settings_view_logs_label">Voir les journaux locaux</string>

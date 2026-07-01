@@ -3,6 +3,7 @@ package com.minos2020.immichswipe.data.repository
 import com.minos2020.immichswipe.data.local.dao.AlbumDecisionCount
 import com.minos2020.immichswipe.data.local.dao.SwipeDecisionDao
 import com.minos2020.immichswipe.data.local.entity.SwipeDecisionEntity
+import com.minos2020.immichswipe.data.local.entity.SyncHistoryEntity
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -121,7 +122,7 @@ class SwipeDecisionRepository(
         lockedCount: Int,
         skippedCount: Int
     ) {
-        val history = com.minos2020.immichswipe.data.local.entity.SyncHistoryEntity(
+        val history = SyncHistoryEntity(
             userId = userId,
             deletedCount = deletedCount,
             bytesSaved = bytesSaved,
@@ -137,4 +138,26 @@ class SwipeDecisionRepository(
      * Récupère l'historique complet pour un utilisateur.
      */
     fun getSyncHistory(userId: String) = swipeDecisionDao.getSyncHistory(userId)
+
+    // --- Opérations d'administration ---
+
+    suspend fun clearAllData() {
+        swipeDecisionDao.deleteAllDecisions()
+        swipeDecisionDao.deleteAllSyncHistory()
+    }
+
+    suspend fun clearUserData(userId: String) {
+        swipeDecisionDao.deleteAllDecisionsForUser(userId)
+        swipeDecisionDao.deleteAllSyncHistoryForUser(userId)
+    }
+
+    suspend fun getAllDecisionsRaw() = swipeDecisionDao.getAllDecisionsRaw()
+    suspend fun getAllDecisionsForUserRaw(userId: String) = swipeDecisionDao.getAllDecisionsForUserRaw(userId)
+    suspend fun getAllSyncHistoryRaw() = swipeDecisionDao.getAllSyncHistoryRaw()
+    suspend fun getAllSyncHistoryForUserRaw(userId: String) = swipeDecisionDao.getAllSyncHistoryForUserRaw(userId)
+
+    suspend fun importData(decisions: List<SwipeDecisionEntity>, history: List<SyncHistoryEntity>) {
+        swipeDecisionDao.insertDecisions(decisions)
+        swipeDecisionDao.insertSyncHistoryList(history)
+    }
 }
