@@ -33,13 +33,15 @@ Inspirée par l'application [Sponge](https://play.google.com/store/apps/details?
 
 ## ✨ Fonctionnalités
 
-- **🚀 Pile de tri Rapide** : Swipez à droite pour garder, à gauche pour supprimer. Le bandeau déroulant en haut vous donne un retour visuel direct sur vos choix et les médias à venir.
-- **🕒 Snooze (SKIP)** : Un média vous fait hésiter ? Passez-le (SKIP). Il réapparaîtra automatiquement dans votre pile après un délai que vous configurez (ex: 1 jour, 1 mois, ou jamais).
-- **🛡️ Synchronisation différée** : Immich Swipe ne supprime rien sans votre accord final. Vos choix sont stockés localement, et vous déclenchez la véritable suppression sur le serveur Immich quand vous êtes prêt via le **Mode Revue**.
-- **💾 Sauvegarde des sessions** : Quittez l'appli et revenez plus tard : votre progression dans chaque album est sauvegardée.
-- **📂 Gestion Multi-Albums** : L'application gère parfaitement les médias présents dans plusieurs albums à la fois.
-- **🚦 Diagnostic de Connexion** : Un indicateur visuel (Vert/Orange/Rouge) vous informe en temps réel de l'état de la connexion à votre serveur.
-- **🎨 Interface Moderne** : Développée avec Jetpack Compose et Material Design 3, supportant les thèmes Clair et Sombre.
+- **🚀 Pile de tri Rapide** : Swipez à droite pour garder, à gauche pour supprimer. Les médias triés disparaissent de la timeline en temps réel pour une expérience fluide.
+- **🕒 Snooze (SKIP)** : Un doute ? Passez-le (SKIP). Les médias réapparaissent automatiquement après un délai configurable (1 jour, 1 mois, ou jamais).
+- **📁 Collections (Albums Virtuels)** : Accédez à des groupes spéciaux comme la **Collection SKIPs** pour revoir tous vos médias passés au même endroit.
+- **📊 Statistiques Globales** : Visualisez votre progression avec des statistiques détaillées et une répartition de vos actions de tri.
+- **🛡️ Mode Revue Avancé** : Vérifiez toutes vos décisions (supprimer, garder, archiver, verrouiller) et estimez l'espace libéré avant la synchronisation avec Immich.
+- **🔄 Support Multi-Comptes** : Déconnectez-vous et changez d'utilisateur facilement ; vos décisions locales et votre progression sont conservées pour chaque compte.
+- **🗃️ Gestion de la Base de Données** : Exportez, importez ou videz votre base locale (globalement ou par utilisateur) pour sauvegarder vos données.
+- **🚦 Diagnostic de Connexion** : Indicateur en temps réel, support HTTP et IP directes, et accès aux journaux (logs) pour faciliter le dépannage.
+- **🎨 Interface Moderne** : Développée avec Jetpack Compose et Material Design 3, disponible en Français, Anglais et Espagnol.
 
 ## ⚙️ Configuration
 
@@ -50,6 +52,7 @@ Inspirée par l'application [Sponge](https://play.google.com/store/apps/details?
      - `album.read`
      - `asset.read`
      - `asset.view`
+     - `asset.statistics`
      - `asset.delete`
      - `asset.update` (Optionnel --> si vous souhaitez pouvoir archiver des assets, les ajouter aux favoris ou encore les envoyer dans le dossier verrouillé)
      - `userProfileImage.read` (Optionnel --> permet d'afficher l'image du profil utilisateur)
@@ -82,4 +85,4 @@ Bien que ce projet soit développé avec le plus grand soin et testé régulièr
 
 Il est important de noter que :
 - **Sécurité de la corbeille** : Immich Swipe ne vide jamais la corbeille de votre serveur Immich. En cas d'erreur de tri, vos photos restent récupérables via l'interface officielle d'Immich pendant la durée de conservation configurée de la corbeille.
-- **Principe de moindre privilège** : Afin de minimiser les risques, il est vivement conseillé de ne configurer votre clé API qu'avec les permissions strictement nécessaires listées dans la section [Configuration](#⚙️-configuration).
+- **Principe de moindre privilège** : Afin de minimiser les risques, il est vivement conseillé de ne configurer votre clé API qu'avec les permissions strictement nécessaires listées dans la section [Configuration](#configuration).

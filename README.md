@@ -33,13 +33,15 @@ Inspired by the [Sponge](https://play.google.com/store/apps/details?id=com.prism
 
 ## ✨ Features
 
-- **🚀 Fast Sorting Stack**: Swipe right to keep, left to delete. The scrolling banner at the top gives you direct visual feedback on your choices and upcoming media.
-- **🕒 Snooze (SKIP)**: Unsure about a photo? Skip it. It will automatically reappear in your stack after a delay you configure (e.g., 1 day, 1 month, or never).
-- **🛡️ Deferred Sync**: Immich Swipe doesn't delete anything without your final approval. Your choices are stored locally, and you trigger the actual deletion on the Immich server when you're ready via **Review Mode**.
-- **💾 Session Save**: Leave the app and come back later: your progress in each album is saved.
-- **📂 Multi-Album Management**: The app perfectly handles media present in multiple albums simultaneously.
-- **🚦 Connection Diagnostic**: A visual indicator (Green/Orange/Red) informs you in real-time of the connection status to your server.
-- **🎨 Modern Interface**: Developed with Jetpack Compose and Material Design 3, supporting both Light and Dark themes.
+- **🚀 Fast Sorting Stack**: Swipe right to keep, left to delete. Sorted assets disappear from the timeline in real-time for a cleaner experience.
+- **🕒 Snooze (SKIP)**: Unsure? Skip it. Assets automatically reappear after a configurable delay (1 day, 1 month, or never).
+- **📁 Collections (Virtual Albums)**: Access special groups like the **SKIPs Collection** to review all your skipped items in one place.
+- **📊 Global Usage Stats**: Visualize your progress with detailed statistics and a breakdown of your sorting actions.
+- **🛡️ Advanced Review Mode**: Review all your decisions (delete, keep, archive, lock) and see estimated reclaimed space before syncing.
+- **🔄 Multi-Account Support**: Switch between different users seamlessly; your local decisions and progress are preserved for each account.
+- **🗃️ Database Management**: Export, import, or clear your local database (globally or per user) to safeguard your sorting data.
+- **🚦 Connection Diagnostic**: Real-time status indicator, HTTP/direct IP support, and in-app logs for easy troubleshooting.
+- **🎨 Modern Interface**: Jetpack Compose and Material Design 3, with support for English, French, and Spanish.
 
 ## ⚙️ Configuration
 
@@ -51,6 +53,7 @@ Inspired by the [Sponge](https://play.google.com/store/apps/details?id=com.prism
      - `asset.read`
      - `asset.view`
      - `asset.delete`
+     - `asset.statistics`
      - `asset.update` (Optional --> if you want to archive assets, add them to favourites or to locked folder)
      - `userProfileImage.read` (Optional --> to show user profile image)
 3. Select an album and start sorting!
@@ -82,4 +85,4 @@ While this project is developed with care and tested regularly, I cannot guarant
 
 Please keep in mind:
 - **Trash Safety**: Immich Swipe never empties the trash on your Immich server. If you make a mistake while sorting, your photos remain recoverable through the official Immich interface during the configured trash retention period.
-- **Principle of Least Privilege**: To minimize risks, it is highly recommended to configure your API key with only the strictly required permissions listed in the [Configuration](#⚙️-configuration) section.
+- **Principle of Least Privilege**: To minimize risks, it is highly recommended to configure your API key with only the strictly required permissions listed in the [Configuration](#configuration) section.
