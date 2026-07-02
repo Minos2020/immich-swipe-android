@@ -32,6 +32,7 @@
     <string name="home_status_in_progress">En curso</string>
     <string name="home_status_not_started">Sin empezar</string>
     <string name="home_status_completed">Completado</string>
+    <string name="home_status_virtual">Colecciones especiales</string>
     <string name="home_album_completed">Completado</string>
     <string name="home_unsynced_changes">Contiene %1$d eliminaciones sin sincronizar</string>
     <string name="home_sorted_count">%1$d / %2$d ordenadas</string>
@@ -40,6 +41,7 @@
     <string name="home_photos_to_discover">%1$d fotos por descubrir</string>
     <string name="home_new_badge">NUEVO</string>
     <string name="home_unsynced_badge">SIN SINCRONIZAR</string>
+    <string name="home_virtual_skipped_synced">SKIPs</string>
     <string name="home_user_fallback">Usuario</string>
 
     <!-- Ventana de perfil y diagnóstico -->
@@ -76,6 +78,8 @@
     <string name="settings_layout_list">Lista</string>
     <string name="settings_layout_grid">Cuadrícula</string>
     <string name="settings_section_tri">Ordenación</string>
+    <string name="settings_include_archived_label">Incluir archivados externos</string>
+    <string name="settings_include_archived_desc">Mostrar y ordenar las fotos ya archivadas en Immich (fuera de Immich Swipe)</string>
     <string name="settings_skip_lifespan_label">Duración de SKIP</string>
     <string name="settings_skip_lifespan_desc">Tras este plazo, las fotos \'omitidas\' vuelven a estar \'sin ordenar\' para reevaluarlas.</string>
     <string name="settings_skip_never">SKIP nunca vuelve</string>
@@ -91,6 +95,12 @@
     <string name="settings_video_behavior_desc">Gestiona la interacción con otros sonidos del dispositivo al reproducir un vídeo</string>
     <string name="settings_video_pause">Pausar otros sonidos</string>
     <string name="settings_video_ignore">Reproducir sobre otros sonidos</string>
+    <string name="settings_tri_actions_label">Acciones de ordenación mostradas</string>
+    <string name="settings_tri_favorite">Botón Favorito</string>
+    <string name="settings_tri_archive">Botón Archivar</string>
+    <string name="settings_tri_lock">Botón Carpeta Bloqueada</string>
+    <string name="settings_auto_next_label">Avanzar automáticamente</string>
+    <string name="settings_auto_next_desc">Pasar a la siguiente foto y marcar automáticamente como CONSERVAR después de marcar como favorito</string>
     <string name="settings_section_account">Cuenta</string>
     <string name="settings_pos_top_left">Arriba a la izquierda</string>
     <string name="settings_pos_top_right">Arriba a la derecha</string>
@@ -104,6 +114,9 @@
     <string name="swipe_delete_upper">ELIMINAR</string>
     <string name="swipe_skip">Omitir</string>
     <string name="swipe_remaining">Restantes</string>
+    <string name="swipe_favorite">Favoritos</string>
+    <string name="swipe_archive">Archivar</string>
+    <string name="swipe_locked">Bloquear</string>
     <string name="swipe_summary_title">Resumen de ordenación</string>
     <string name="swipe_sync_success">¡Sincronizado!</string>
     <string name="swipe_sync_success_desc">Tus cambios están en Immich</string>
@@ -135,11 +148,13 @@
 
     <!-- Común -->
     <string name="common_confirm">Confirmar</string>
+    <string name="common_confirm_sync">Confirmar (%1$d elementos)</string>
     <string name="common_cancel">Cancelar</string>
     <string name="common_apply">Aplicar</string>
     <string name="common_retry">Reintentar</string>
     <string name="common_close">Cerrar</string>
     <string name="common_loading">Cargando…</string>
+    <string name="home_virtual_skipped_synced_desc">Colección de todos los elementos marcados como SKIP y sincronizados</string>
 
     <!-- Estadísticas -->
     <string name="stats_popup_title">Estadísticas de uso</string>
