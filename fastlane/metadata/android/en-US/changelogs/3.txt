@@ -1,0 +1,10 @@
+- New app logo to reduce confusion with the official Immich app.
+- New actions available in the swipe screen : Add to favorites, Archive, and Add to locker
+- New Collections feature
+- Global usage stats screen
+- Multi-account support
+- Database options (DELETE, IMPORT, EXPORT), globally or by user
+- Support for HTTP and/or direct IP addresses connections
+- In-app logs
+- Spanish translation by @ruflas
+- ... a lot more general enhancements, fixes and performance changes.

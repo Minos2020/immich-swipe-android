@@ -1,14 +1,27 @@
-Immich Swipe is an open-source Android application designed to make sorting your photos and videos hosted on your Immich server easy and fun.
+Immich Swipe is an open-source Android application that makes reviewing and sorting your photos and videos stored on an Immich server fast and intuitive.
 
-Inspired by the concept of Tinder for photos, it allows you to quickly declutter your library using simple swipe gestures.
+Instead of browsing long galleries, media is presented one item at a time. Swipe right to keep an item, swipe left to mark it for deletion, making large photo libraries much easier to organize.
 
-Key Features:
-- Fast Sorting Stack: Swipe right to keep, left to delete.
-- Snooze (SKIP): Pass media temporarily and set a reappearance delay.
-- Deferred Sync: Nothing is deleted on your server without your final approval in the Review Mode.
-- Session Save: Your progress in each album is automatically saved.
-- Multi-Album Management: Perfectly handles media present in multiple albums.
-- Connection Diagnostic: Real-time visual indicator of your server status.
-- Modern Interface: Full Material You support with Light and Dark themes.
+Features:
 
-Disclaimer: This is an independent project and is not affiliated in any way with the official Immich project.
+• Fast swipe-based sorting interface for photos and videos with several options (Keep, Delete, Archive, Lock, Favorites)
+• Real-time removal of sorted items from the current timeline
+• Configurable "Skip" feature to postpone decisions
+• Virtual collections, including a dedicated collection for skipped items
+• Review mode to inspect all pending actions before synchronizing them with your Immich server
+• Estimated storage space reclaimed before applying deletions
+• Global statistics showing your sorting progress
+• Multi-account support with separate local data for each Immich account
+• Import, export and backup of the local database
+• Connection diagnostics with status indicators and logs
+• Modern Material 3 interface built with Jetpack Compose
+• Available in English, French and Spanish
+
+Immich Swipe is designed with privacy in mind. It contains no advertisements, no analytics, no tracking libraries and does not depend on proprietary Google Play Services.
+
+To use the application, you only need the address of your Immich server and an API key with the appropriate permissions (see the README.md on Github).
+
+
+Disclaimer: Immich Swipe is an independent community project and is not affiliated with or endorsed by the Immich project.
+
+Source code : https://github.com/Minos2020/immich-swipe-android
