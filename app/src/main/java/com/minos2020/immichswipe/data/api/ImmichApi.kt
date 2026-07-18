@@ -65,7 +65,9 @@ data class DeleteAssetsRequest(
  */
 data class SearchAssetsRequest(
     val albumIds: List<String>? = null,
-    val size: Int = 1000, //pour éviter les histoires de pagination pour l'instant
+    val ids: List<String>? = null,
+    val size: Int = 1000,
+    val page: Int = 1,
     val visibility: String? = null // archive, timeline, hidden, locked
 )
 
@@ -82,7 +84,8 @@ data class SearchStatisticsResponse(
  */
 data class SearchAssetResult(
     val items: List<Asset>,
-    val total: Int
+    val total: Int,
+    val nextPage: String? = null
 )
 
 /**

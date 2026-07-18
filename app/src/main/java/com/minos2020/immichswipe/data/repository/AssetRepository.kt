@@ -8,7 +8,6 @@ import com.minos2020.immichswipe.data.local.dao.SwipeDecisionDao
 import com.minos2020.immichswipe.domain.model.Album
 import com.minos2020.immichswipe.domain.model.Asset
 import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 
@@ -28,38 +27,54 @@ class AssetRepository(
             val skippedDecisions = swipeDecisionDao.getSyncedSkipDecisions(userId).first()
             val assetIds = skippedDecisions.map { it.assetId }
             
-            // On récupère les détails pour chaque asset en parallèle
-            return coroutineScope {
-                assetIds.map { id ->
-                    async {
-                        try {
-                            api.getAssetDetail(id)
-                        } catch (_: Exception) {
-                            null
-                        }
-                    }
-                }.awaitAll().filterNotNull()
-            }
+            if (assetIds.isEmpty()) return emptyList()
+
+            // On utilise l'API de recherche avec la liste d'IDs pour être plus efficace
+            return fetchAllAssets(SearchAssetsRequest(ids = assetIds))
         }
 
         return if (includeArchived) {
             coroutineScope {
-                val timelineDeferred = async { 
-                    api.searchAssets(SearchAssetsRequest(albumIds = listOf(albumId), visibility = "timeline")) 
-                }
-                val archiveDeferred = async { 
-                    api.searchAssets(SearchAssetsRequest(albumIds = listOf(albumId), visibility = "archive")) 
-                }
+                val timelineDeferred = async { fetchAllAssets(SearchAssetsRequest(albumIds = listOf(albumId), visibility = "timeline")) }
+                val archiveDeferred = async { fetchAllAssets(SearchAssetsRequest(albumIds = listOf(albumId), visibility = "archive")) }
                 
-                val timeline = try { timelineDeferred.await().assets.items } catch (_: Exception) { emptyList() }
-                val archive = try { archiveDeferred.await().assets.items } catch (_: Exception) { emptyList() }
+                val timeline = try { timelineDeferred.await() } catch (_: Exception) { emptyList() }
+                val archive = try { archiveDeferred.await() } catch (_: Exception) { emptyList() }
                 
                 (timeline + archive).sortedByDescending { it.fileCreatedAt }
             }
         } else {
-            val request = SearchAssetsRequest(albumIds = listOf(albumId), visibility = "timeline")
-            api.searchAssets(request).assets.items
+            try {
+                fetchAllAssets(SearchAssetsRequest(albumIds = listOf(albumId), visibility = "timeline"))
+            } catch (_: Exception) {
+                emptyList()
+            }
         }
+    }
+
+    /**
+     * Récupère TOUS les assets correspondant à une requête en gérant la pagination.
+     */
+    private suspend fun fetchAllAssets(baseRequest: SearchAssetsRequest): List<Asset> {
+        val allItems = mutableListOf<Asset>()
+        var nextToFetch: String? = "1" // On commence à la page 1
+
+        while (nextToFetch != null) {
+            val response = api.searchAssets(
+                baseRequest.copy(
+                    size = 1000,
+                    page = nextToFetch.toIntOrNull() ?: 1
+                )
+            )
+            allItems.addAll(response.assets.items)
+            
+            // Le serveur nous dit quelle est la prochaine page à charger
+            nextToFetch = response.assets.nextPage
+
+            // Sécurité : évite les boucles infinies
+            if (allItems.size > 500000) break
+        }
+        return allItems
     }
 
     /**
