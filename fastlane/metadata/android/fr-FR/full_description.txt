@@ -1,14 +1,25 @@
 Immich Swipe est une application Android open-source conçue pour faciliter le tri de vos photos et vidéos hébergées sur votre serveur Immich.
 
-Inspirée par le concept de Tinder appliqué aux photos, elle vous permet de nettoyer rapidement votre bibliothèque par de simples gestes de balayage (swipe).
+Plutôt que de faire défiler toute votre galerie, chaque image ou vidéo apparait une par une. Il ne reste plus qu'à choisir de quel côté swiper.
 
 Fonctionnalités clés :
-- Pile de tri rapide : Swiper à droite pour garder, à gauche pour supprimer.
-- Snooze (SKIP) : Passez temporairement un média et définissez un délai de réapparition.
-- Synchronisation différée : Rien n'est supprimé sur votre serveur sans votre accord final dans le Mode Revue.
-- Sauvegarde de session : Votre progression dans chaque album est automatiquement sauvegardée.
-- Gestion multi-albums : Gère parfaitement les médias présents dans plusieurs albums simultanément.
-- Diagnostic de connexion : Indicateur visuel en temps réel de l'état de votre serveur.
-- Interface moderne : Support complet de Material You avec thèmes Clair et Sombre.
+
+- <b>Pile de tri rapide :</b> Swiper à droite pour garder, à gauche pour supprimer (ajouter aux favoris, au dossier verrouillé ou aux archives est aussi possible !)
+- <b>Snooze (SKIP) :</b> Vous n'êtes pas sûr pour une photo ? Passez-la temporairement et elle réapparaitra après la durée paramétrée pour être triée de nouveau
+- <b>Collections virtuelles :</b> en plus des regroupements par albums, les collections permettent de trier les medias selon d'autres critères
+- <b>Synchronisation différée :</b> Rien n'est supprimé sur votre serveur sans votre accord final dans le Mode Revue
+- <b>Statistiques d'utilisation :</b> suivez vos progrès dans le tri de votre galerie Immich
+- <b>Support multi-compte :</b> plusieurs comptes Immich peuvent être utilisés, toutes les données de tri sont sauvegardées localement et chargées lors de la reconnexion
+- <b>Gestion multi-albums :</b> Gère parfaitement les médias présents dans plusieurs albums simultanément
+- <b>Import, export et sauvegarde</b> de la base de donnée locale
+- <b>Diagnostic de connexion :</b> Indicateur visuel en temps réel de l'état de votre serveur
+- <b>Interface moderne</b>, basée sur Jetpack Compose
+- Disponible en français, anglais et espagnol
+
+Immich Swipe est développé avec le respect de la vie privée comme objectif. Pas de tracking, pas de publicités, pas de services propriétaires.
+
+Pour utiliser l'application, vous n'avez besoin que du domaine/adresse de votre instance Immich et d'une clé API avec les permissions appropriées (voir le <a href="https://github.com/Minos2020/immich-swipe-android/blob/main/README.md">README.md sur Github</a>).
 
 Avertissement : Ce projet est indépendant et n'est affilié d'aucune façon avec le projet officiel Immich.
+
+Code source : https://github.com/Minos2020/immich-swipe-android

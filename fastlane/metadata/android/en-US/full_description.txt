@@ -1,25 +1,24 @@
 Immich Swipe is an open-source Android application that makes reviewing and sorting your photos and videos stored on an Immich server fast and intuitive.
 
-Instead of browsing long galleries, media is presented one item at a time. Swipe right to keep an item, swipe left to mark it for deletion, making large photo libraries much easier to organize.
+Instead of browsing long galleries, media is presented one item at a time. Swipe right to keep an item, swipe left to mark it for deletion, making large media libraries much easier to organize.
 
 Features:
 
-• Fast swipe-based sorting interface for photos and videos with several options (Keep, Delete, Archive, Lock, Favorites)
-• Real-time removal of sorted items from the current timeline
-• Configurable "Skip" feature to postpone decisions
-• Virtual collections, including a dedicated collection for skipped items
-• Review mode to inspect all pending actions before synchronizing them with your Immich server
-• Estimated storage space reclaimed before applying deletions
-• Global statistics showing your sorting progress
-• Multi-account support with separate local data for each Immich account
-• Import, export and backup of the local database
-• Connection diagnostics with status indicators and logs
-• Modern Material 3 interface built with Jetpack Compose
+• <b>Fast swipe-based sorting interface</b> for photos and videos with several options (Keep, Delete, Archive, Lock, Favorites)
+• <b>Configurable "Skip" feature</b> to postpone decisions when you're unsure
+• <b>Virtual collections:</b> Sort your medias, not only per album
+• <b>Review mode:</b> Inspect all pending actions before synchronizing them with your Immich server
+• <b>Global usage statistics</b> showing your progress in cleaning your library
+• <b>Multi-account support</b> with separate local data for each Immich account
+• <b>Multi-album support:</b> handle assets that are in multiple albums
+• <b>Import, export and backup</b> of the local database
+• <b>Connection diagnostics</b> with status indicators and logs
+• <b>Modern Material 3 interface</b>, built with Jetpack Compose
 • Available in English, French and Spanish
 
 Immich Swipe is designed with privacy in mind. It contains no advertisements, no analytics, no tracking libraries and does not depend on proprietary Google Play Services.
 
-To use the application, you only need the address of your Immich server and an API key with the appropriate permissions (see the README.md on Github).
+To use the application, you only need the address/domain of your Immich server and an API key with the appropriate permissions (see the <a href="https://github.com/Minos2020/immich-swipe-android/blob/main/README.md">README.md on Github</a>).
 
 
 Disclaimer: Immich Swipe is an independent community project and is not affiliated with or endorsed by the Immich project.

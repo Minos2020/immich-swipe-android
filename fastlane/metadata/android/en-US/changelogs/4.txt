@@ -1,0 +1,9 @@
+Fixes:
+
+* albums with more than 1000 medias are now handled
+* english is now the default language
+
+Added:
+
+* Compliance with F-Droid requirements, hopefully!
+* avatar color follows the real Immich user avatar color
