@@ -148,11 +148,12 @@ fun HomeScreen(
 
                             val baseUrl = SessionManager.getBaseUrl()
                             val userId = uiState.user?.id
+                            val avatarColor = getAvatarColor(uiState.user?.avatarColor)
                             
                             val profileModifier = Modifier
                                 .padding(end = 16.dp)
                                 .size(36.dp)
-                                .border(1.dp, Color(0xFF9C27B0), CircleShape)
+                                .border(1.dp, avatarColor, CircleShape)
                                 .padding(2.dp)
                                 .clip(CircleShape)
                                 .clickable { viewModel.toggleProfilePopup(true) }
@@ -615,9 +616,10 @@ fun ProfilePopup(
                 Spacer(Modifier.height(24.dp))
 
                 // Photo de profil grande
+                val avatarColor = getAvatarColor(user?.avatarColor)
                 val profileModifier = Modifier
                     .size(100.dp)
-                    .border(3.dp, Color(0xFF9C27B0), CircleShape)
+                    .border(3.dp, avatarColor, CircleShape)
                     .padding(4.dp)
                     .clip(CircleShape)
 
@@ -1374,5 +1376,28 @@ fun ErrorView(error: String, onRetry: () -> Unit) {
             Spacer(Modifier.height(16.dp))
             Button(onClick = onRetry) { Text(stringResource(R.string.home_retry_button)) }
         }
+    }
+}
+
+/**
+ * Retourne la couleur Compose correspondant au nom de couleur Immich.
+ */
+private fun getAvatarColor(colorName: String?): Color {
+    return when (colorName?.lowercase()) {
+        "primary" -> Color(0xFFadcbfa)
+        "pink" -> Color(0xFFE91E63)
+        "red" -> Color(0xFFF44336)
+        "yellow" -> Color(0xFFFFEB3B)
+        "blue" -> Color(0xFF2196F3)
+        "green" -> Color(0xFF4CAF50)
+        "purple" -> Color(0xFF9C27B0)
+        "orange" -> Color(0xFFFF9800)
+        "gray", "grey" -> Color(0xFF9E9E9E)
+        "amber" -> Color(0xFFFFC107)
+        "cyan" -> Color(0xFF00BCD4)
+        "indigo" -> Color(0xFF3F51B5)
+        "lime" -> Color(0xFFCDDC39)
+        "teal" -> Color(0xFF009688)
+        else -> Color(0xFF9C27B0) // Valeur par défaut (violet)
     }
 }
