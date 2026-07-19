@@ -21,6 +21,7 @@ class SessionDataStore(private val context: Context) {
         private val KEY_SWIPE_INVERTED = androidx.datastore.preferences.core.booleanPreferencesKey("swipe_inverted")
         private val KEY_FULLSCREEN_ICON_POS = stringPreferencesKey("fullscreen_icon_pos")
         private val KEY_IMMICH_ICON_POS = stringPreferencesKey("immich_icon_pos")
+        private val KEY_CARD_DISPLAY_ICON_POS = stringPreferencesKey("card_display_icon_pos")
         private val KEY_DEFAULT_LAYOUT_GRID = androidx.datastore.preferences.core.booleanPreferencesKey("default_layout_grid")
         private val KEY_SKIP_LIFESPAN = androidx.datastore.preferences.core.longPreferencesKey("skip_lifespan")
         private val KEY_SHOW_FAVORITE = androidx.datastore.preferences.core.booleanPreferencesKey("show_favorite")
@@ -28,6 +29,7 @@ class SessionDataStore(private val context: Context) {
         private val KEY_SHOW_LOCK = androidx.datastore.preferences.core.booleanPreferencesKey("show_lock")
         private val KEY_AUTO_NEXT_ON_FAV = androidx.datastore.preferences.core.booleanPreferencesKey("auto_next_on_fav")
         private val KEY_INCLUDE_ARCHIVED = androidx.datastore.preferences.core.booleanPreferencesKey("include_archived")
+        private val KEY_DEFAULT_CARD_DISPLAY_MODE = stringPreferencesKey("default_card_display_mode")
     }
 
     suspend fun saveSession(baseUrl: String, apiKey: String, userId: String) {
@@ -84,6 +86,12 @@ class SessionDataStore(private val context: Context) {
         context.dataStore.edit { it[KEY_IMMICH_ICON_POS] = pos }
     }
 
+    fun getCardDisplayIconPosition(): Flow<String?> = context.dataStore.data.map { it[KEY_CARD_DISPLAY_ICON_POS] }
+
+    suspend fun saveCardDisplayIconPosition(pos: String) {
+        context.dataStore.edit { it[KEY_CARD_DISPLAY_ICON_POS] = pos }
+    }
+
     fun isDefaultLayoutGrid(): Flow<Boolean> = context.dataStore.data.map { it[KEY_DEFAULT_LAYOUT_GRID] ?: false }
 
     suspend fun saveDefaultLayoutGrid(isGrid: Boolean) {
@@ -110,6 +118,9 @@ class SessionDataStore(private val context: Context) {
 
     fun isIncludeArchived(): Flow<Boolean> = context.dataStore.data.map { it[KEY_INCLUDE_ARCHIVED] ?: true }
     suspend fun saveIncludeArchived(include: Boolean) { context.dataStore.edit { it[KEY_INCLUDE_ARCHIVED] = include } }
+
+    fun getDefaultCardDisplayMode(): Flow<String?> = context.dataStore.data.map { it[KEY_DEFAULT_CARD_DISPLAY_MODE] }
+    suspend fun saveDefaultCardDisplayMode(mode: String) { context.dataStore.edit { it[KEY_DEFAULT_CARD_DISPLAY_MODE] = mode } }
 
     suspend fun clearSession() {
         context.dataStore.edit { it.clear() }

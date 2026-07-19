@@ -106,6 +106,11 @@
     <string name="settings_pos_top_right">Arriba a la derecha</string>
     <string name="settings_pos_bottom_left">Abajo a la izquierda</string>
     <string name="settings_pos_bottom_right">Abajo a la derecha</string>
+    <string name="settings_display_mode_label">Visualización predeterminada</string>
+    <string name="settings_display_mode_fill">Rellenar</string>
+    <string name="settings_display_mode_fit">Ajustar</string>
+    <string name="settings_display_mode_pos_label">Posición del botón de modo de visualización</string>
+    <string name="swipe_toggle_display">Cambiar modo de visualización</string>
 
     <!-- Pantalla de swipe -->
     <string name="swipe_keep">Conservar</string>

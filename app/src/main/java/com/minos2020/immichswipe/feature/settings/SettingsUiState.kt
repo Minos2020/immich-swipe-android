@@ -1,6 +1,7 @@
 package com.minos2020.immichswipe.feature.settings
 
 import com.minos2020.immichswipe.core.AppTheme
+import com.minos2020.immichswipe.core.CardDisplayMode
 import com.minos2020.immichswipe.core.IconPosition
 import com.minos2020.immichswipe.core.PlaybackBehavior
 
@@ -23,6 +24,7 @@ data class SettingsUiState(
     val isSwipeInverted: Boolean = false,
     val fullscreenButtonPosition: IconPosition = IconPosition.TOP_RIGHT,
     val immichButtonPosition: IconPosition = IconPosition.TOP_LEFT,
+    val cardDisplayButtonPosition: IconPosition = IconPosition.BOTTOM_LEFT,
     val isDefaultLayoutGrid: Boolean = false,
     val skipLifespanDays: Long = 0L,
     val showSkipLifespanWarning: Long? = null, // Contient la valeur cible si le dialogue est affiché
@@ -33,6 +35,7 @@ data class SettingsUiState(
     val autoNextOnFav: Boolean = true,
     val includeArchived: Boolean = false,
     val showLogsDialog: Boolean = false,
+    val defaultCardDisplayMode: CardDisplayMode = CardDisplayMode.FILL,
     
     // Database actions
     val pendingDatabaseAction: DatabaseAction? = null,

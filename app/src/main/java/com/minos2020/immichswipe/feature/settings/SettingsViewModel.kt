@@ -73,6 +73,11 @@ class SettingsViewModel(
             }
         }
         viewModelScope.launch {
+            sessionRepository.cardDisplayButtonPosition.collect { pos ->
+                _uiState.value = _uiState.value.copy(cardDisplayButtonPosition = pos)
+            }
+        }
+        viewModelScope.launch {
             sessionRepository.defaultLayoutGrid.collect { isGrid ->
                 _uiState.value = _uiState.value.copy(isDefaultLayoutGrid = isGrid)
             }
@@ -107,6 +112,11 @@ class SettingsViewModel(
                 _uiState.value = _uiState.value.copy(includeArchived = include)
             }
         }
+        viewModelScope.launch {
+            sessionRepository.defaultCardDisplayMode.collect { mode ->
+                _uiState.value = _uiState.value.copy(defaultCardDisplayMode = mode)
+            }
+        }
     }
 
     fun setPlaybackBehavior(behavior: PlaybackBehavior) {
@@ -139,6 +149,12 @@ class SettingsViewModel(
         }
     }
 
+    fun setCardDisplayButtonPosition(pos: IconPosition) {
+        viewModelScope.launch {
+            sessionRepository.saveCardDisplayButtonPosition(pos)
+        }
+    }
+
     fun setDefaultLayoutGrid(isGrid: Boolean) {
         viewModelScope.launch {
             sessionRepository.saveDefaultLayoutGrid(isGrid)
@@ -163,6 +179,12 @@ class SettingsViewModel(
 
     fun setIncludeArchived(include: Boolean) {
         viewModelScope.launch { sessionRepository.saveIncludeArchived(include) }
+    }
+
+    fun setDefaultCardDisplayMode(mode: com.minos2020.immichswipe.core.CardDisplayMode) {
+        viewModelScope.launch {
+            sessionRepository.saveDefaultCardDisplayMode(mode)
+        }
     }
 
     fun requestSkipLifespanChange(days: Long) {

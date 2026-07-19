@@ -147,6 +147,35 @@ fun SettingsScreen(
                             modifier = Modifier.weight(1f)
                         )
                     }
+
+                    Spacer(Modifier.height(16.dp))
+
+                    // Mode d'affichage par défaut des swipe cards
+                    Text(
+                        text = stringResource(R.string.settings_display_mode_label),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ThemeButton(
+                            text = stringResource(R.string.settings_display_mode_fill),
+                            icon = Icons.Default.AspectRatio,
+                            selected = uiState.defaultCardDisplayMode == com.minos2020.immichswipe.core.CardDisplayMode.FILL,
+                            onClick = { viewModel.setDefaultCardDisplayMode(com.minos2020.immichswipe.core.CardDisplayMode.FILL) },
+                            modifier = Modifier.weight(1f)
+                        )
+                        ThemeButton(
+                            text = stringResource(R.string.settings_display_mode_fit),
+                            icon = Icons.Default.FitScreen,
+                            selected = uiState.defaultCardDisplayMode == com.minos2020.immichswipe.core.CardDisplayMode.FIT,
+                            onClick = { viewModel.setDefaultCardDisplayMode(com.minos2020.immichswipe.core.CardDisplayMode.FIT) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
 
@@ -312,6 +341,15 @@ fun SettingsScreen(
                         title = stringResource(R.string.settings_immich_pos_label),
                         selectedPosition = uiState.immichButtonPosition,
                         onPositionSelected = { viewModel.setImmichButtonPosition(it) }
+                    )
+
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
+
+                    // Position icône Mode d'affichage (Nouveau)
+                    IconPositionPicker(
+                        title = stringResource(R.string.settings_display_mode_pos_label),
+                        selectedPosition = uiState.cardDisplayButtonPosition,
+                        onPositionSelected = { viewModel.setCardDisplayButtonPosition(it) }
                     )
 
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)

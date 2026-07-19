@@ -6,6 +6,7 @@ import com.minos2020.immichswipe.core.AppTheme
 import com.minos2020.immichswipe.core.IconPosition
 import com.minos2020.immichswipe.core.PlaybackBehavior
 import com.minos2020.immichswipe.core.SessionConfig
+import com.minos2020.immichswipe.core.CardDisplayMode
 import com.minos2020.immichswipe.data.datastore.SessionDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -76,6 +77,13 @@ class SessionRepository(context: Context) {
     }
 
     /**
+     * Expose la position de l'icône de mode d'affichage.
+     */
+    val cardDisplayButtonPosition: Flow<IconPosition> = dataStore.getCardDisplayIconPosition().map {
+        it?.let { try { IconPosition.valueOf(it) } catch(e: Exception) { IconPosition.BOTTOM_LEFT } } ?: IconPosition.BOTTOM_LEFT
+    }
+
+    /**
      * Expose la préférence du mode d'affichage par défaut.
      */
     val defaultLayoutGrid: Flow<Boolean> = dataStore.isDefaultLayoutGrid()
@@ -90,6 +98,13 @@ class SessionRepository(context: Context) {
     val showLockButton: Flow<Boolean> = dataStore.isShowLock()
     val autoNextOnFav: Flow<Boolean> = dataStore.isAutoNextOnFav()
     val includeArchived: Flow<Boolean> = dataStore.isIncludeArchived()
+
+    /**
+     * Expose le mode d'affichage par défaut des cartes.
+     */
+    val defaultCardDisplayMode: Flow<CardDisplayMode> = dataStore.getDefaultCardDisplayMode().map {
+        it?.let { try { CardDisplayMode.valueOf(it) } catch(e: Exception) { CardDisplayMode.FILL } } ?: CardDisplayMode.FILL
+    }
 
     /**
      * Sauvegarde une nouvelle session. 
@@ -135,6 +150,13 @@ class SessionRepository(context: Context) {
     }
 
     /**
+     * Sauvegarde la position de l'icône de mode d'affichage.
+     */
+    suspend fun saveCardDisplayButtonPosition(pos: IconPosition) {
+        dataStore.saveCardDisplayIconPosition(pos.name)
+    }
+
+    /**
      * Sauvegarde le mode d'affichage par défaut.
      */
     suspend fun saveDefaultLayoutGrid(isGrid: Boolean) {
@@ -153,6 +175,10 @@ class SessionRepository(context: Context) {
     suspend fun saveShowLock(show: Boolean) { dataStore.saveShowLock(show) }
     suspend fun saveAutoNextOnFav(autoNextOnFav: Boolean) { dataStore.saveAutoNextOnFav(autoNextOnFav) }
     suspend fun saveIncludeArchived(include: Boolean) { dataStore.saveIncludeArchived(include) }
+
+    suspend fun saveDefaultCardDisplayMode(mode: CardDisplayMode) {
+        dataStore.saveDefaultCardDisplayMode(mode.name)
+    }
 
     /**
      * Vérifie si une session partielle existe (ancienne version) et la nettoie.

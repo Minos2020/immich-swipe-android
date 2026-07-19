@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.minos2020.immichswipe.data.repository.AssetRepository
 import com.minos2020.immichswipe.core.AppLogger
+import com.minos2020.immichswipe.core.CardDisplayMode
 import com.minos2020.immichswipe.data.repository.SessionRepository
 import com.minos2020.immichswipe.data.repository.SwipeDecisionRepository
 import com.minos2020.immichswipe.domain.model.Album
@@ -30,10 +31,20 @@ class SwipeViewModel(
         observeSwipeInversion()
         observeFullscreenButtonPosition()
         observeImmichButtonPosition()
+        observeCardDisplayButtonPosition()
         observeSkipLifespan()
         observeButtonVisibility()
         observeAutoNextOnFav()
         observeIncludeArchived()
+        observeDefaultCardDisplayMode()
+    }
+
+    private fun observeDefaultCardDisplayMode() {
+        viewModelScope.launch {
+            sessionRepository.defaultCardDisplayMode.collect { mode ->
+                _uiState.value = _uiState.value.copy(cardDisplayMode = mode)
+            }
+        }
     }
 
     private fun observeIncludeArchived() {
@@ -120,6 +131,14 @@ class SwipeViewModel(
         viewModelScope.launch {
             sessionRepository.immichButtonPosition.collect { pos ->
                 _uiState.value = _uiState.value.copy(immichButtonPosition = pos)
+            }
+        }
+    }
+
+    private fun observeCardDisplayButtonPosition() {
+        viewModelScope.launch {
+            sessionRepository.cardDisplayButtonPosition.collect { pos ->
+                _uiState.value = _uiState.value.copy(cardDisplayButtonPosition = pos)
             }
         }
     }
@@ -362,6 +381,15 @@ class SwipeViewModel(
 
     fun toggleLock() {
         onSwipe(SwipeDecision.LOCK)
+    }
+
+    fun toggleDisplayMode() {
+        val nextMode = if (_uiState.value.cardDisplayMode == com.minos2020.immichswipe.core.CardDisplayMode.FILL) {
+            CardDisplayMode.FIT
+        } else {
+            CardDisplayMode.FILL
+        }
+        _uiState.value = _uiState.value.copy(cardDisplayMode = nextMode)
     }
 
     fun undo() {

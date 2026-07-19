@@ -107,6 +107,11 @@
     <string name="settings_pos_top_right">Haut-Droite</string>
     <string name="settings_pos_bottom_left">Bas-Gauche</string>
     <string name="settings_pos_bottom_right">Bas-Droite</string>
+    <string name="settings_display_mode_label">Affichage par défaut des médias</string>
+    <string name="settings_display_mode_fill">Remplir</string>
+    <string name="settings_display_mode_fit">Ajuster</string>
+    <string name="settings_display_mode_pos_label">Position du bouton Mode d\'affichage</string>
+    <string name="swipe_toggle_display">Changer le mode d\'affichage</string>
 
     <!-- Écran Swipe -->
     <string name="swipe_keep">Garder</string>

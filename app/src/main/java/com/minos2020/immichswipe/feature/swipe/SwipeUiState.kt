@@ -3,6 +3,7 @@ package com.minos2020.immichswipe.feature.swipe
 import com.minos2020.immichswipe.domain.model.Asset
 import com.minos2020.immichswipe.core.PlaybackBehavior
 import com.minos2020.immichswipe.core.IconPosition
+import com.minos2020.immichswipe.core.CardDisplayMode
 
 /**
  * Les différentes décisions possibles pour un asset.
@@ -30,13 +31,15 @@ data class SwipeUiState(
     val isSwipeInverted: Boolean = false,
     val fullscreenButtonPosition: IconPosition = IconPosition.TOP_RIGHT,
     val immichButtonPosition: IconPosition = IconPosition.TOP_LEFT,
+    val cardDisplayButtonPosition: IconPosition = IconPosition.TOP_RIGHT,
     val skipLifespanDays: Long = 0L,
     val showFavoriteButton: Boolean = true,
     val showArchiveButton: Boolean = true,
     val showLockButton: Boolean = true,
     val autoNextOnFav: Boolean = true,
     val includeArchived: Boolean = false,
-    val localFavorites: Map<String, Boolean> = emptyMap() // Map de AssetID -> Nouveau statut favori
+    val localFavorites: Map<String, Boolean> = emptyMap(), // Map de AssetID -> Nouveau statut favori
+    val cardDisplayMode: CardDisplayMode = CardDisplayMode.FILL
 ) {
     val currentAsset: Asset? get() = assets.getOrNull(currentIndex)
     

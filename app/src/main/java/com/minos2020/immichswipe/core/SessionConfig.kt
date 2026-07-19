@@ -23,3 +23,11 @@ enum class IconPosition {
     BOTTOM_LEFT,
     BOTTOM_RIGHT
 }
+
+/**
+ * Mode d'affichage des médias dans les cartes de tri.
+ */
+enum class CardDisplayMode {
+    FILL, // Remplit toute la carte (Crop)
+    FIT   // Affiche l'image entière (Fit)
+}

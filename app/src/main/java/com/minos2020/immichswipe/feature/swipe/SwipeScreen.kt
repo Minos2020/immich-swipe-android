@@ -69,6 +69,7 @@ import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.minos2020.immichswipe.R
+import com.minos2020.immichswipe.core.CardDisplayMode
 import com.minos2020.immichswipe.core.IconPosition
 import com.minos2020.immichswipe.core.PlaybackBehavior
 import com.minos2020.immichswipe.core.SessionManager
@@ -193,7 +194,10 @@ fun SwipeScreen(
                             playbackBehavior = uiState.playbackBehavior,
                             isSwipeInverted = uiState.isSwipeInverted,
                             fullscreenButtonPosition = uiState.fullscreenButtonPosition,
-                            immichButtonPosition = uiState.immichButtonPosition
+                            immichButtonPosition = uiState.immichButtonPosition,
+                            cardDisplayButtonPosition = uiState.cardDisplayButtonPosition,
+                            cardDisplayMode = uiState.cardDisplayMode,
+                            onToggleDisplayMode = { viewModel.toggleDisplayMode() }
                         )
                     }
                 }
@@ -681,7 +685,10 @@ fun SwipeCard(
     playbackBehavior: PlaybackBehavior,
     isSwipeInverted: Boolean,
     fullscreenButtonPosition: IconPosition,
-    immichButtonPosition: IconPosition
+    immichButtonPosition: IconPosition,
+    cardDisplayButtonPosition: IconPosition,
+    cardDisplayMode: CardDisplayMode,
+    onToggleDisplayMode: () -> Unit
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
@@ -850,6 +857,7 @@ fun SwipeCard(
                         SharedVideoPlayer(
                             player = exoPlayer,
                             isFullscreen = false,
+                            cardDisplayMode = cardDisplayMode,
                             onDoubleTap = { isFullscreenOpen = true }
                         )
 
@@ -881,7 +889,7 @@ fun SwipeCard(
                         AsyncImage(
                             model = placeholderRequest,
                             contentDescription = null,
-                            contentScale = ContentScale.Crop,
+                            contentScale = if (cardDisplayMode == CardDisplayMode.FILL) ContentScale.Crop else ContentScale.Fit,
                             modifier = Modifier.fillMaxSize()
                         )
                     }
@@ -897,7 +905,7 @@ fun SwipeCard(
                     AsyncImage(
                         model = photoRequest,
                         contentDescription = null,
-                        contentScale = ContentScale.Crop,
+                        contentScale = if (cardDisplayMode == CardDisplayMode.FILL) ContentScale.Crop else ContentScale.Fit,
                         modifier = Modifier
                             .fillMaxSize()
                             .then(
@@ -910,9 +918,9 @@ fun SwipeCard(
                     )
                 }
 
-                // Boutons d'action (Plein écran et Immich)
+                // Boutons d'action (Plein écran, Immich, Mode d'affichage)
                 if (!isNext) {
-                    val distinctPositions = listOf(fullscreenButtonPosition, immichButtonPosition).distinct()
+                    val distinctPositions = listOf(fullscreenButtonPosition, immichButtonPosition, cardDisplayButtonPosition).distinct()
                     distinctPositions.forEach { position ->
                         Column(
                             modifier = Modifier
@@ -926,6 +934,14 @@ fun SwipeCard(
                                     icon = Icons.Default.Fullscreen,
                                     contentDescription = stringResource(R.string.settings_fullscreen_pos_label),
                                     onClick = { isFullscreenOpen = true }
+                                )
+                            }
+                            if (cardDisplayButtonPosition == position) {
+                                SwipeActionIconButton(
+                                    icon = if (cardDisplayMode == com.minos2020.immichswipe.core.CardDisplayMode.FILL) 
+                                        Icons.Default.FitScreen else Icons.Default.AspectRatio,
+                                    contentDescription = stringResource(R.string.swipe_toggle_display),
+                                    onClick = onToggleDisplayMode
                                 )
                             }
                             if (immichButtonPosition == position) {
@@ -1000,6 +1016,7 @@ fun SwipeCard(
 fun SharedVideoPlayer(
     player: Player,
     isFullscreen: Boolean,
+    cardDisplayMode: com.minos2020.immichswipe.core.CardDisplayMode = CardDisplayMode.FILL,
     onDoubleTap: (() -> Unit)? = null
 ) {
     AndroidView(
@@ -1019,7 +1036,11 @@ fun SharedVideoPlayer(
             view.resizeMode = if (isFullscreen) {
                 androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
             } else {
-                androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                if (cardDisplayMode == CardDisplayMode.FILL) {
+                    androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                } else {
+                    androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+                }
             }
 
             // S'assure que la lecture reprend bien
