@@ -918,7 +918,21 @@ fun SwipeCard(
                     )
                 }
 
+                // Panneau Métadonnées Interactif (Intégré dans la carte)
+                if (!isNext) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .height(metadataHeight)
+                            .graphicsLayer { translationY = metadataHeight.toPx() + offsetY.value }
+                    ) {
+                        MetadataPanel(asset = asset, onClose = { scope.launch { offsetY.animateTo(0f) } })
+                    }
+                }
+
                 // Boutons d'action (Plein écran, Immich, Mode d'affichage)
+                // Placés à la fin pour être dessinés AU-DESSUS du dégradé et du panneau de métadonnées
                 if (!isNext) {
                     val distinctPositions = listOf(fullscreenButtonPosition, immichButtonPosition, cardDisplayButtonPosition).distinct()
                     distinctPositions.forEach { position ->
@@ -955,27 +969,6 @@ fun SwipeCard(
                                 )
                             }
                         }
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .height(150.dp)
-                        .background(Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.5f))))
-                )
-
-                // Panneau Métadonnées Interactif (Intégré dans la carte)
-                if (!isNext) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .height(metadataHeight)
-                            .graphicsLayer { translationY = metadataHeight.toPx() + offsetY.value }
-                    ) {
-                        MetadataPanel(asset = asset, onClose = { scope.launch { offsetY.animateTo(0f) } })
                     }
                 }
 
@@ -1138,7 +1131,7 @@ fun FullscreenViewer(
 fun IndicatorBadge(text: String, color: Color, align: Alignment, alpha: Float) {
     Box(
         modifier = Modifier
-            .padding(40.dp)
+            .padding(horizontal = 70.dp, vertical = 35.dp)
             .fillMaxSize()
             .graphicsLayer { this.alpha = alpha },
         contentAlignment = align
