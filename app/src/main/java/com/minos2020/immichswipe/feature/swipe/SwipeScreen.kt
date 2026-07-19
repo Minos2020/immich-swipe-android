@@ -12,8 +12,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -35,12 +34,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -854,26 +857,32 @@ fun SwipeCard(
                     // Si le plein écran est ouvert, on cache celui de la carte pour qu'il puisse
                     // être ré-attaché proprement au retour.
                     if (!isFullscreenOpen) {
-                        SharedVideoPlayer(
-                            player = exoPlayer,
-                            isFullscreen = false,
-                            cardDisplayMode = cardDisplayMode,
+                        ZoomableBox(
+                            modifier = Modifier.fillMaxSize(),
+                            resetOnRelease = true,
                             onDoubleTap = { isFullscreenOpen = true }
-                        )
+                        ) {
+                            SharedVideoPlayer(
+                                player = exoPlayer,
+                                isFullscreen = false,
+                                cardDisplayMode = cardDisplayMode,
+                                onDoubleTap = null // Géré par ZoomableBox
+                            )
 
-                        // Indicateur de chargement si la vidéo n'est pas prête
-                        if (showLoadingIndicator) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = 0.2f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator(
-                                    color = Color.White,
-                                    strokeWidth = 3.dp,
-                                    modifier = Modifier.size(40.dp)
-                                )
+                            // Indicateur de chargement si la vidéo n'est pas prête
+                            if (showLoadingIndicator) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color.Black.copy(alpha = 0.2f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        color = Color.White,
+                                        strokeWidth = 3.dp,
+                                        modifier = Modifier.size(40.dp)
+                                    )
+                                }
                             }
                         }
                     } else {
@@ -902,20 +911,21 @@ fun SwipeCard(
                             .precision(coil.size.Precision.INEXACT)
                             .build()
                     }
-                    AsyncImage(
-                        model = photoRequest,
-                        contentDescription = null,
-                        contentScale = if (cardDisplayMode == CardDisplayMode.FILL) ContentScale.Crop else ContentScale.Fit,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .then(
-                                if (!isNext) {
-                                    Modifier.pointerInput(Unit) {
-                                        detectTapGestures(onDoubleTap = { isFullscreenOpen = true })
-                                    }
-                                } else Modifier
-                            )
-                    )
+                    ZoomableBox(
+                        modifier = Modifier.fillMaxSize(),
+                        resetOnRelease = true,
+                        enabled = !isNext,
+                        aspectRatio = asset.exifInfo?.let { it.imageWidth?.toFloat()?.div(it.imageHeight?.toFloat() ?: 1f) },
+                        isFillMode = cardDisplayMode == CardDisplayMode.FILL,
+                        onDoubleTap = { isFullscreenOpen = true }
+                    ) {
+                        AsyncImage(
+                            model = photoRequest,
+                            contentDescription = null,
+                            contentScale = ContentScale.Fit, // Utilisation de Fit + ZoomableBox pour le mode FILL
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
 
                 // Panneau Métadonnées Interactif (Intégré dans la carte)
@@ -968,7 +978,7 @@ fun SwipeCard(
                             }
                             if (cardDisplayButtonPosition == position) {
                                 SwipeActionIconButton(
-                                    icon = if (cardDisplayMode == com.minos2020.immichswipe.core.CardDisplayMode.FILL) 
+                                    icon = if (cardDisplayMode == CardDisplayMode.FILL) 
                                         Icons.Default.FitScreen else Icons.Default.AspectRatio,
                                     contentDescription = stringResource(R.string.swipe_toggle_display),
                                     onClick = onToggleDisplayMode
@@ -1098,15 +1108,14 @@ fun FullscreenViewer(
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = (1f - (swipeY.value / 1000f)).coerceIn(0f, 1f)))
                 .pointerInput(Unit) {
-                    detectTapGestures(onDoubleTap = { onClose() })
-                }
-                .pointerInput(Unit) {
                     detectDragGestures(
                         onDragEnd = {
                             if (swipeY.value > 120) onClose()
                             else scope.launch { swipeY.animateTo(0f) }
                         },
                         onDrag = { change, dragAmount ->
+                            // Le swipe down n'est déclenché que si le ZoomableBox ne consomme pas l'événement
+                            // (ce qui arrive quand on n'est pas en train de zoomer/panner)
                             change.consume()
                             scope.launch { swipeY.snapTo((swipeY.value + dragAmount.y).coerceAtLeast(0f)) }
                         }
@@ -1115,19 +1124,25 @@ fun FullscreenViewer(
                 .offset { IntOffset(0, swipeY.value.roundToInt()) },
             contentAlignment = Alignment.Center
         ) {
-            if (asset.type == "VIDEO" && player != null) {
-                SharedVideoPlayer(player = player, isFullscreen = true)
-            } else {
-                val baseUrlClean = SessionManager.getBaseUrl()?.removeSuffix("/")
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data("$baseUrlClean/api/assets/${asset.id}/thumbnail?format=JPEG&size=preview")
-                        .addHeader("x-api-key", SessionManager.getApiKey() ?: "")
-                        .build(),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit
-                )
+            ZoomableBox(
+                modifier = Modifier.fillMaxSize(),
+                resetOnRelease = false,
+                aspectRatio = asset.exifInfo?.let { it.imageWidth?.toFloat()?.div(it.imageHeight?.toFloat() ?: 1f) }
+            ) {
+                if (asset.type == "VIDEO" && player != null) {
+                    SharedVideoPlayer(player = player, isFullscreen = true)
+                } else {
+                    val baseUrlClean = SessionManager.getBaseUrl()?.removeSuffix("/")
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data("$baseUrlClean/api/assets/${asset.id}/thumbnail?format=JPEG&size=preview")
+                            .addHeader("x-api-key", SessionManager.getApiKey() ?: "")
+                            .build(),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
+                }
             }
 
             IconButton(
@@ -1552,5 +1567,268 @@ private fun SwipeActionIconButton(
     ) {
         Icon(icon, contentDescription, tint = Color.White)
     }
+}
+
+/**
+ * Un conteneur qui permet le pinch-to-zoom et le panoramique avec inertie.
+ * Supporte une réinitialisation automatique au relâchement (pour les cartes)
+ * ou un zoom persistant avec double-tap pour réinitialiser (pour le plein écran).
+ */
+@Composable
+fun ZoomableBox(
+    modifier: Modifier = Modifier,
+    resetOnRelease: Boolean = false,
+    enabled: Boolean = true,
+    aspectRatio: Float? = null,
+    isFillMode: Boolean = false,
+    onDoubleTap: (() -> Unit)? = null,
+    content: @Composable BoxScope.() -> Unit
+) {
+    if (!enabled) {
+        Box(modifier = modifier, content = content)
+        return
+    }
+
+    val scope = rememberCoroutineScope()
+
+    // Calcul de la "base" pour le mode FILL si l'aspect ratio est connu
+    var fillScale by remember(aspectRatio) { mutableFloatStateOf(1f) }
+    
+    var scale by remember { mutableFloatStateOf(1f) }
+    var offset by remember { mutableStateOf(Offset.Zero) }
+
+    // Animatables pour les transitions fluides et l'inertie
+    val animatedScale = remember { Animatable(1f) }
+    val animatedOffset = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
+
+    // Mise à jour de la configuration quand le mode ou l'aspect ratio change
+    LaunchedEffect(isFillMode, fillScale) {
+        val target = if (isFillMode) fillScale else 1f
+        if (resetOnRelease) {
+            launch { animatedScale.animateTo(target, spring(dampingRatio = Spring.DampingRatioLowBouncy)) }
+            launch { animatedOffset.animateTo(Offset.Zero, spring(dampingRatio = Spring.DampingRatioLowBouncy)) }
+        } else {
+            scale = target
+            offset = Offset.Zero
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .clipToBounds()
+            .onSizeChanged { intSize ->
+                if (aspectRatio != null && intSize.width > 0 && intSize.height > 0) {
+                    val boxRatio = intSize.width.toFloat() / intSize.height.toFloat()
+                    fillScale = if (aspectRatio > boxRatio) {
+                        aspectRatio / boxRatio
+                    } else {
+                        boxRatio / aspectRatio
+                    }
+                }
+            }
+            .pointerInput(resetOnRelease, isFillMode, fillScale) {
+                val velocityTracker = VelocityTracker()
+                awaitEachGesture {
+                    velocityTracker.resetTracking()
+                    do {
+                        val event = awaitPointerEvent()
+                        val zoomChange = event.calculateZoom()
+                        val panChange = event.calculatePan()
+                        val centroid = event.calculateCentroid()
+
+                        // On arrête toute animation en cours dès qu'un doigt touche l'écran
+                        if (event.changes.any { it.pressed }) {
+                            scope.launch {
+                                animatedScale.stop()
+                                animatedOffset.stop()
+                            }
+                        }
+
+                        if (event.changes.size >= 2) {
+                            // Pinch to zoom
+                            if (zoomChange != 1f || panChange != Offset.Zero) {
+                                val oldScale = if (resetOnRelease) animatedScale.value else scale
+                                // On permet de dézoomer en dessous du min pendant le geste pour la fluidité (ressort)
+                                val minAllowedScale = if (resetOnRelease) (if (isFillMode) fillScale else 1f) * 0.7f else 0.7f
+                                val newScale = (oldScale * zoomChange).coerceIn(minAllowedScale, 5f)
+
+                                // Calcul du centre relatif pour zoomer au bon endroit
+                                val centroidInCenter = centroid - Offset(size.width / 2f, size.height / 2f)
+                                val oldOffset = if (resetOnRelease) animatedOffset.value else offset
+
+                                // Formule pour garder le point sous les doigts stable pendant le zoom
+                                val newOffset = oldOffset + (centroidInCenter - oldOffset) * ((oldScale - newScale) / oldScale) + panChange
+
+                                if (resetOnRelease) {
+                                    scope.launch {
+                                        animatedScale.snapTo(newScale)
+                                        animatedOffset.snapTo(newOffset)
+                                    }
+                                } else {
+                                    scale = newScale
+                                    offset = newOffset
+                                }
+                                event.changes.forEach { it.consume() }
+                            }
+                        } else if (event.changes.size == 1 && !resetOnRelease) {
+                            // Panning (un doigt) - Autorisé UNIQUEMENT en plein écran
+                            val currentScale = scale
+                            val minScale = 1f
+                            
+                            if (currentScale > minScale * 1.01f) {
+                                if (panChange != Offset.Zero) {
+                                    offset += panChange
+                                    event.changes.forEach { 
+                                        velocityTracker.addPosition(it.uptimeMillis, it.position)
+                                        it.consume() 
+                                    }
+                                }
+                            }
+                        }
+                    } while (event.changes.any { it.pressed })
+
+                    // À la fin du geste
+                    val finalScale = if (resetOnRelease) animatedScale.value else scale
+                    val baseScale = if (isFillMode && resetOnRelease) fillScale else 1f
+
+                    if (resetOnRelease) {
+                        // Réinitialisation complète et immédiate pour les swipe cards (retour au centre)
+                        scope.launch {
+                            launch { animatedScale.animateTo(baseScale, spring(dampingRatio = Spring.DampingRatioLowBouncy)) }
+                            launch { animatedOffset.animateTo(Offset.Zero, spring(dampingRatio = Spring.DampingRatioLowBouncy)) }
+                        }
+                    } else {
+                        // Pour le plein écran : on gère l'inertie
+                        val targetScale = finalScale.coerceAtLeast(1f)
+                        val velocity = velocityTracker.calculateVelocity()
+                        
+                        scope.launch {
+                            // Animation du scale si besoin (retour au x1 si dézoomé)
+                            if (targetScale != finalScale) {
+                                launch {
+                                    animate(finalScale, targetScale, animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy)) { value, _ ->
+                                        scale = value
+                                    }
+                                }
+                            }
+                            
+                            // Animation du panoramique avec inertie (Fling)
+                            launch {
+                                val decay = exponentialDecay<Offset>(frictionMultiplier = 1.5f)
+                                animatedOffset.snapTo(offset) // On utilise Animatable pour le fling
+                                animatedOffset.animateDecay(Offset(velocity.x, velocity.y), decay) {
+                                    // Pendant le fling, on contraint l'offset aux limites
+                                    val currentMaxX = (size.width * (scale - 1f) / 2f).coerceAtLeast(0f)
+                                    val currentMaxY = (size.height * (scale - 1f) / 2f).coerceAtLeast(0f)
+                                    
+                                    val constrained = Offset(
+                                        value.x.coerceIn(-currentMaxX, currentMaxX),
+                                        value.y.coerceIn(-currentMaxY, currentMaxY)
+                                    )
+                                    
+                                    offset = constrained
+                                    // Si on touche un bord, on arrête le fling
+                                    if (constrained != value) {
+                                        scope.launch { animatedOffset.stop() }
+                                    }
+                                }
+                                
+                                // Si pas de fling ou après le fling, on s'assure d'être dans les clous
+                                val finalMaxX = (size.width * (scale - 1f) / 2f).coerceAtLeast(0f)
+                                val finalMaxY = (size.height * (scale - 1f) / 2f).coerceAtLeast(0f)
+                                val targetOffset = Offset(
+                                    offset.x.coerceIn(-finalMaxX, finalMaxX),
+                                    offset.y.coerceIn(-finalMaxY, finalMaxY)
+                                )
+                                if (targetOffset != offset) {
+                                    animate(
+                                        typeConverter = Offset.VectorConverter,
+                                        initialValue = offset,
+                                        targetValue = targetOffset,
+                                        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy)
+                                    ) { value, _ ->
+                                        offset = value
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .then(
+                Modifier.pointerInput(resetOnRelease, scale) {
+                    detectTapGestures(onDoubleTap = { tapOffset ->
+                        if (!resetOnRelease) {
+                            // Mode plein écran : Bascule x1 / x3
+                            if (scale > 1.01f) {
+                                scope.launch {
+                                    launch {
+                                        androidx.compose.animation.core.animate(scale, 1f, animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy)) { value, _ ->
+                                            scale = value
+                                        }
+                                    }
+                                    launch {
+                                        androidx.compose.animation.core.animate(
+                                            typeConverter = Offset.VectorConverter,
+                                            initialValue = offset,
+                                            targetValue = Offset.Zero,
+                                            animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy)
+                                        ) { value, _ ->
+                                            offset = value
+                                        }
+                                    }
+                                }
+                            } else {
+                                // Zoom x3 à l'endroit du tap
+                                val targetScale = 3f
+                                val center = Offset(size.width / 2f, size.height / 2f)
+                                val centroidInCenter = tapOffset - center
+                                
+                                // Calcul de l'offset cible pour centrer sur le tap
+                                val targetOffsetRaw = centroidInCenter * (1f - targetScale)
+                                
+                                // On applique les limites immédiatement
+                                val maxX = (size.width * (targetScale - 1f) / 2f).coerceAtLeast(0f)
+                                val maxY = (size.height * (targetScale - 1f) / 2f).coerceAtLeast(0f)
+                                val targetOffset = Offset(
+                                    targetOffsetRaw.x.coerceIn(-maxX, maxX),
+                                    targetOffsetRaw.y.coerceIn(-maxY, maxY)
+                                )
+
+                                scope.launch {
+                                    launch {
+                                        androidx.compose.animation.core.animate(scale, targetScale, animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy)) { value, _ ->
+                                            scale = value
+                                        }
+                                    }
+                                    launch {
+                                        androidx.compose.animation.core.animate(
+                                            typeConverter = Offset.VectorConverter,
+                                            initialValue = offset,
+                                            targetValue = targetOffset,
+                                            animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy)
+                                        ) { value, _ ->
+                                            offset = value
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            // Mode Swipe Card : Action externe (ex: ouvrir plein écran)
+                            onDoubleTap?.invoke()
+                        }
+                    })
+                }
+            )
+            .graphicsLayer {
+                val s = if (resetOnRelease) animatedScale.value else scale
+                val o = if (resetOnRelease) animatedOffset.value else offset
+                scaleX = s
+                scaleY = s
+                translationX = o.x
+                translationY = o.y
+            },
+        content = content
+    )
 }
 
