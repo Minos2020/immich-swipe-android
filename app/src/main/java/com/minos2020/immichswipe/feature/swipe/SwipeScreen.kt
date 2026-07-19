@@ -437,7 +437,7 @@ fun SwipeHeader(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Barre de progression avec nom de l'album
-        Box(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(40.dp)
@@ -446,11 +446,59 @@ fun SwipeHeader(
                 .clickable { onSummaryClick() },
             contentAlignment = Alignment.CenterStart
         ) {
-            // Remplissage de la progression (avec valeur animée)
+            val totalWidth = constraints.maxWidth.toFloat()
+            val progressWidth = totalWidth * animatedProgress
+            val density = LocalDensity.current
+            val paddingPx = with(density) { 16.dp.toPx() }
+            val spacingPx = paddingPx // Equidistant : 16dp
+
+            // 1. Logique de positionnement du pourcentage/icône (Info)
+            // Fixé à 72dp pour que l'icône ne bouge pas selon le texte
+            val infoWidthPx = with(density) { 72.dp.toPx() }
+            val infoIsInside = progressWidth > infoWidthPx + paddingPx
+            val infoTranslationX by animateFloatAsState(
+                targetValue = if (infoIsInside)
+                    (progressWidth - infoWidthPx - paddingPx).coerceAtLeast(paddingPx)
+                else
+                    totalWidth - infoWidthPx - paddingPx,
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                label = "InfoTranslation"
+            )
+
+            // 2. Logique de positionnement du Titre
+            // Il est poussé par la barre, puis revient à gauche dès qu'il y a la place
+            // On augmente le seuil à 250dp pour éviter le chevauchement avec le pourcentage
+            val titleThreshold = with(density) { 250.dp.toPx() }
+            val titleIsPushed = progressWidth > paddingPx && progressWidth < titleThreshold
+            val titleTranslationX by animateFloatAsState(
+                targetValue = if (titleIsPushed) progressWidth + spacingPx else paddingPx,
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                label = "TitleTranslation"
+            )
+
+            // On dessine le contenu complet deux fois (une sombre, une claire clippée)
+            // Cela gère automatiquement le changement de couleur au passage de la barre
+
+            // --- CALQUE DU DESSOUS (Sombre sur beige) ---
+            Box(modifier = Modifier.fillMaxSize()) {
+                HeaderTitle(
+                    text = uiState.albumName,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.graphicsLayer { translationX = titleTranslationX }.align(Alignment.CenterStart)
+                )
+                HeaderInfo(
+                    progressText = "${(uiState.progress * 100).toInt()}%",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.graphicsLayer { translationX = infoTranslationX }.align(Alignment.CenterStart)
+                )
+            }
+
+            // --- CALQUE DU DESSUS (Clair sur dégradé, clippé par la progression) ---
             Box(
                 modifier = Modifier
                     .fillMaxWidth(animatedProgress)
                     .fillMaxHeight()
+                    .clipToBounds()
                     .background(
                         Brush.horizontalGradient(
                             colors = listOf(
@@ -460,35 +508,20 @@ fun SwipeHeader(
                         )
                     )
                     .background(Color.Black.copy(alpha = 0.1f))
-            )
-            
-            // Texte de l'album
-            Row(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = uiState.albumName,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    maxLines = 1,
-                    modifier = Modifier.weight(1f)
-                )
-                
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "${(uiState.progress * 100).toInt()}%",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color.White.copy(alpha = 0.9f)
+                // On utilise une largeur fixe (totalWidth) pour que les textes blancs
+                // soient parfaitement alignés avec les textes sombres en dessous
+                // Correction : on ajoute fillMaxHeight pour que l'alignement vertical soit identique
+                Box(modifier = Modifier.width(with(density) { totalWidth.toDp() }).fillMaxHeight()) {
+                    HeaderTitle(
+                        text = uiState.albumName,
+                        color = Color.White,
+                        modifier = Modifier.graphicsLayer { translationX = titleTranslationX }.align(Alignment.CenterStart)
                     )
-                    Spacer(Modifier.width(8.dp))
-                    Icon(
-                        imageVector = Icons.Default.Assessment,
-                        contentDescription = stringResource(R.string.swipe_summary_title),
-                        tint = Color.White,
-                        modifier = Modifier.size(16.dp)
+                    HeaderInfo(
+                        progressText = "${(uiState.progress * 100).toInt()}%",
+                        color = Color.White,
+                        modifier = Modifier.graphicsLayer { translationX = infoTranslationX }.align(Alignment.CenterStart)
                     )
                 }
             }
@@ -511,6 +544,41 @@ fun SwipeHeader(
 }
 
 @Composable
+private fun HeaderTitle(text: String, color: Color, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.Bold,
+        color = color,
+        maxLines = 1,
+        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+        modifier = modifier.widthIn(max = 170.dp)
+    )
+}
+
+@Composable
+private fun HeaderInfo(progressText: String, color: Color, modifier: Modifier = Modifier) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically, 
+        horizontalArrangement = Arrangement.End,
+        modifier = modifier.width(72.dp)
+    ) {
+        Text(
+            text = progressText,
+            style = MaterialTheme.typography.labelMedium,
+            color = color.copy(alpha = 0.9f)
+        )
+        Spacer(Modifier.width(8.dp))
+        Icon(
+            imageVector = Icons.Default.Assessment,
+            contentDescription = stringResource(R.string.swipe_summary_title),
+            tint = color,
+            modifier = Modifier.size(16.dp)
+        )
+    }
+}
+
+@Composable
 fun StatBadge(label: String, count: Int, color: Color) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
@@ -523,7 +591,7 @@ fun StatBadge(label: String, count: Int, color: Color) {
         Text(
             text = "$count $label",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
         )
     }
 }
@@ -1423,7 +1491,7 @@ fun StatSummaryBox(
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelSmall,
-                    color = color.copy(alpha = 0.9f),
+                    color = color.copy(alpha = 1f), // Pleine opacité pour le contraste
                     fontWeight = FontWeight.Bold,
                     maxLines = 1
                 )
@@ -1436,7 +1504,7 @@ fun StatSummaryBox(
                 Text(
                     text = if (isEstimated) "~ ${formatSize(size)}" else formatSize(size),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
             }
         }
