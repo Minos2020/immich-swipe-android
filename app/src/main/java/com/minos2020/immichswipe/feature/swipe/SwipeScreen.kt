@@ -934,12 +934,28 @@ fun SwipeCard(
                 // Boutons d'action (Plein écran, Immich, Mode d'affichage)
                 // Placés à la fin pour être dessinés AU-DESSUS du dégradé et du panneau de métadonnées
                 if (!isNext) {
+                    // Calcul de l'état "aimanté" vers le haut : si le panneau est tiré à plus de 10%
+                    val isMetadataPulled = offsetY.value < -metadataHeightPx * 0.1f
+                    val buttonsTranslationY by animateFloatAsState(
+                        targetValue = if (isMetadataPulled) -metadataHeightPx else 0f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioLowBouncy,
+                            stiffness = Spring.StiffnessLow
+                        ),
+                        label = "ButtonsGlueAnimation"
+                    )
+
                     val distinctPositions = listOf(fullscreenButtonPosition, immichButtonPosition, cardDisplayButtonPosition).distinct()
                     distinctPositions.forEach { position ->
                         Column(
                             modifier = Modifier
                                 .align(position.toAlignment())
-                                .padding(8.dp),
+                                .padding(8.dp)
+                                .graphicsLayer {
+                                    if (position == IconPosition.BOTTOM_LEFT || position == IconPosition.BOTTOM_RIGHT) {
+                                        translationY = buttonsTranslationY
+                                    }
+                                },
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             horizontalAlignment = position.toHorizontalAlignment()
                         ) {
